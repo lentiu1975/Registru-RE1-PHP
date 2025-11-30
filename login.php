@@ -1,11 +1,20 @@
 <?php
+ob_start(); // Activează output buffering pentru a permite redirect-uri
+
+// Configurare sesiune pentru compatibilitate Chrome
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.cookie_lifetime', 0);
+
 session_start();
 require_once 'config/database.php';
 require_once 'includes/functions.php';
 
 // Dacă utilizatorul este deja autentificat, redirecționează
 if (isset($_SESSION['user_id'])) {
-    redirect('/admin.php');
+    header('Location: admin.php');
+    exit;
 }
 
 $error = '';
@@ -38,8 +47,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $updateSql = "UPDATE users SET last_login = NOW() WHERE id = ?";
             dbQuery($updateSql, [$user['id']]);
 
-            // Redirecționează către admin
-            redirect('/admin.php');
+            // Redirecționează către admin panel - multiple metode pentru compatibilitate maximă
+            ?>
+            <!DOCTYPE html>
+            <html lang="ro">
+            <head>
+                <meta charset="UTF-8">
+                <meta http-equiv="refresh" content="0;url=admin.php">
+                <title>Redirecționare...</title>
+                <style>
+                    body { font-family: Arial; text-align: center; padding: 50px; background: #f5f5f5; }
+                    .message { background: white; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            </head>
+            <body>
+                <div class="message">
+                    <h2>✓ Autentificare reușită!</h2>
+                    <div class="spinner"></div>
+                    <p>Redirecționare către panoul admin...</p>
+                    <p><a href="admin.php" style="color: #007bff; text-decoration: none;">Click aici dacă nu ești redirecționat automat</a></p>
+                </div>
+                <script>
+                    // Multiple metode de redirecționare pentru compatibilitate maximă
+                    setTimeout(function() {
+                        window.location.replace('admin.php');
+                    }, 100);
+                    window.location.href = 'admin.php';
+                </script>
+            </body>
+            </html>
+            <?php
+            exit;
         } else {
             $error = 'Nume utilizator sau parolă incorectă.';
         }
@@ -122,16 +162,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="">
+            <form method="POST" action="" autocomplete="off">
                 <div class="mb-3">
                     <label for="username" class="form-label">Nume utilizator</label>
                     <input type="text" class="form-control" id="username" name="username"
-                           value="<?= sanitize($_POST['username'] ?? '') ?>" required autofocus>
+                           value="<?= sanitize($_POST['username'] ?? '') ?>"
+                           autocomplete="off" required autofocus>
                 </div>
 
                 <div class="mb-4">
                     <label for="password" class="form-label">Parolă</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                    <input type="password" class="form-control" id="password" name="password"
+                           autocomplete="new-password" required>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-login">

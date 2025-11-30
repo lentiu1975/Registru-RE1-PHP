@@ -4,12 +4,18 @@
  * Include acest fișier în toate paginile care necesită autentificare
  */
 
+// Configurare sesiune pentru compatibilitate Chrome
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.cookie_lifetime', 0);
+
 session_start();
 
 // Verifică dacă utilizatorul este autentificat
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
     // Redirecționează către login
-    header('Location: /login.php');
+    header('Location: login.php');
     exit;
 }
 
@@ -20,7 +26,7 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) >
     // Sesiune expirată
     session_unset();
     session_destroy();
-    header('Location: /login.php?timeout=1');
+    header('Location: login.php?timeout=1');
     exit;
 }
 

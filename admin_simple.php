@@ -1,12 +1,18 @@
 <?php
 /**
- * PANOUL ADMIN - Funcționează ÎNAINTE de upgrade complet
+ * PANOUL ADMIN SIMPLIFICAT - Funcționează ÎNAINTE de upgrade complet
  * Afișează doar statistici de bază și link către upgrade
  */
 
-require_once 'includes/auth.php';
+session_start();
 require_once 'config/database.php';
 require_once 'includes/functions.php';
+
+// Verifică autentificare
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
 
 // Obține date utilizator curent
 $currentUser = dbFetchOne("SELECT * FROM users WHERE id = ?", [$_SESSION['user_id']]);
@@ -21,7 +27,7 @@ $upgradeComplete = isset($currentUser['is_admin']);
 
 // Obține statistici de bază (doar din tabelele existente)
 $stats = [
-    'manifests' => dbFetchOne("SELECT COUNT(DISTINCT manifest_number) as count FROM manifests")['count'] ?? 0,
+    'manifests' => dbFetchOne("SELECT COUNT(*) as count FROM manifests")['count'] ?? 0,
     'containers' => dbFetchOne("SELECT COUNT(*) as count FROM manifest_entries")['count'] ?? 0,
     'ships' => dbFetchOne("SELECT COUNT(*) as count FROM ships")['count'] ?? 0,
     'users' => dbFetchOne("SELECT COUNT(*) as count FROM users")['count'] ?? 0,
