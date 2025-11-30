@@ -1,0 +1,10 @@
+# Temporary files
+temp_*.txt
+temp_*.ps1
+
+# Credentials
+config/database.php
+
+# IDE
+.vscode/
+.idea/

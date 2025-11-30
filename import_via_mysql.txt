@@ -1,0 +1,61 @@
+INSTRUCTIUNI IMPORT DATE PRIN SSH/TERMINAL
+
+================================
+METODA 1: SSH Terminal (recomandat)
+================================
+
+1. Conecteaza-te la server prin SSH:
+   ssh lentiuro@185.246.123.91
+
+2. Naviga la directorul sitului:
+   cd /home/lentiuro/vamactasud.lentiu.ro
+
+3. Adauga coloanele noi:
+   mysql -u lentiuro_vama -p'parola_baza_date' lentiuro_vama < add_missing_columns.sql
+
+4. Importa datele complete:
+   mysql -u lentiuro_vama -p'parola_baza_date' lentiuro_vama < migrate_complete.sql
+
+5. Verifica import:
+   mysql -u lentiuro_vama -p'parola_baza_date' lentiuro_vama -e "SELECT COUNT(*) FROM manifest_entries;"
+
+================================
+METODA 2: phpMyAdmin (mai lenta)
+================================
+
+1. Acceseaza phpMyAdmin din cPanel
+2. Selecteaza baza de date 'lentiuro_vama'
+3. Click pe tab "Import"
+4. Upload fisierul 'add_missing_columns.sql' - Execute
+5. Upload fisierul 'migrate_complete.sql' - Execute
+   NOTA: Daca fisierul e prea mare, foloseste metoda 3
+
+================================
+METODA 3: Split fisierul SQL
+================================
+
+Daca fisierul e prea mare pentru phpMyAdmin, il splitam in bucati mai mici.
+Spune-mi si voi crea script Python care imparte migrate_complete.sql
+in 10 fisiere mai mici (cate 320 containere fiecare).
+
+================================
+METODA 4: Import prin cPanel File Manager
+================================
+
+1. Deschide cPanel -> File Manager
+2. Naviga la /vamactasud.lentiu.ro
+3. Verifica ca fisierele add_missing_columns.sql si migrate_complete.sql sunt acolo
+4. Deschide cPanel -> MySQL Databases -> phpMyAdmin
+5. Import manual fisierele
+
+================================
+PROBLEMA CURENTA
+================================
+
+Scripturile PHP mor din cauza:
+- Timeout PHP (max_execution_time)
+- Memory limit PHP
+- FastCGI timeout
+- MySQL wait_timeout
+
+Solutia: Import direct prin MySQL command line sau split fisierul.
