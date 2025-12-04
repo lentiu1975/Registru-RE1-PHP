@@ -98,6 +98,10 @@ function handlePost() {
         jsonResponse(['error' => 'Parola este obligatorie'], 400);
     }
 
+    if (empty($data['email'])) {
+        jsonResponse(['error' => 'Email-ul este obligatoriu'], 400);
+    }
+
     // Verifică dacă username-ul există deja
     $existing = dbFetchOne("SELECT id FROM users WHERE username = ?", [$data['username']]);
     if ($existing) {
@@ -129,11 +133,18 @@ function handlePost() {
         isset($data['is_admin']) ? intval($data['is_admin']) : 0
     ];
 
-    dbQuery($sql, $params);
-
+    // Folosește conexiune directă pentru a obține insert_id
     $conn = getDbConnection();
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('sssssii', ...$params);
+    $stmt->execute();
     $userId = $conn->insert_id;
+    $stmt->close();
     $conn->close();
+
+    if (!$userId) {
+        jsonResponse(['error' => 'Eroare la crearea utilizatorului'], 500);
+    }
 
     // Returnează utilizatorul creat (fără parolă)
     $user = dbFetchOne(

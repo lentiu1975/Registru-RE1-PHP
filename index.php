@@ -1,6 +1,21 @@
-﻿<?php
+<?php
+session_start();
 require_once 'config/database.php';
 require_once 'includes/functions.php';
+
+// Verifică autentificare
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+// Verifică dacă utilizatorul există în baza de date și este activ
+$currentUser = dbFetchOne("SELECT * FROM users WHERE id = ? AND is_active = 1", [$_SESSION['user_id']]);
+if (!$currentUser) {
+    session_destroy();
+    header('Location: login.php');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="ro">
@@ -17,7 +32,13 @@ require_once 'includes/functions.php';
         <header class="search-header">
             <div class="header-content">
                 <h1>Registru import RE1 2025</h1>
-                <button onclick="window.location.href='/admin.php'" class="logout-button">Deconectare</button>
+                <div>
+                    <span style="color: #ccc; margin-right: 15px;"><?= htmlspecialchars($currentUser['username']) ?></span>
+                    <?php if ($currentUser['is_admin']): ?>
+                    <a href="/admin_new.php" style="color: #ffc107; margin-right: 15px; text-decoration: none;">Admin</a>
+                    <?php endif; ?>
+                    <button onclick="window.location.href='/logout.php'" class="logout-button">Deconectare</button>
+                </div>
             </div>
         </header>
 
