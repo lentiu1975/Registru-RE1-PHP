@@ -1,6 +1,6 @@
 <?php
 /**
- * API pentru Export Date în CSV
+ * API pentru Export Date în CSV - ordinea conform model import.xlsx
  */
 
 session_start();
@@ -23,16 +23,25 @@ if (empty($manifestNumber)) {
     exit;
 }
 
-// Fetch data
+// Fetch data - ordinea conform model import.xlsx
 $entries = dbFetchAll(
     "SELECT
-        numar_curent, numar_manifest, permit_number, position_number, operation_request,
-        data_inregistrare, container_number, model_container, container_type,
-        packages, weight, goods_description, operation_type,
-        ship_name, ship_flag, summary_number, linie_maritima, observatii
+        numar_manifest,
+        permit_number,
+        position_number,
+        operation_request,
+        data_inregistrare,
+        container_number,
+        goods_description,
+        packages,
+        weight,
+        operation_type,
+        ship_name,
+        ship_flag,
+        summary_number
     FROM manifest_entries
     WHERE permit_number = ?
-    ORDER BY numar_curent ASC",
+    ORDER BY numar_curent ASC, id ASC",
     [$manifestNumber]
 );
 
@@ -54,26 +63,21 @@ $output = fopen('php://output', 'w');
 // BOM pentru Excel
 fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-// Header row
+// Header row - ordinea conform model import.xlsx
 $headers = [
-    'Nr. Crt.',
-    'Numar Manifest',
-    'Numar Permis',
-    'Numar Pozitie',
-    'Cerere Operatiune',
-    'Data Inregistrare',
-    'Container',
-    'Model Container',
-    'Tip Container',
-    'Numar Colete',
-    'Greutate Bruta',
-    'Descriere Marfa',
-    'Tip Operatiune',
-    'Nume Nava',
-    'Pavilion Nava',
-    'Numar Sumara',
-    'Linie Maritima',
-    'Observatii'
+    'numar manifest',
+    'numar permis',
+    'numar pozitie',
+    'cerere operatiune',
+    'data inregistrare',
+    'container',
+    'descriere marfa',
+    'numar colete',
+    'greutate bruta',
+    'tip operatiune',
+    'nume nava',
+    'pavilion nava',
+    'numar sumara'
 ];
 
 fputcsv($output, $headers, ';');
@@ -81,24 +85,19 @@ fputcsv($output, $headers, ';');
 // Data rows
 foreach ($entries as $entry) {
     $row = [
-        $entry['numar_curent'],
         $entry['numar_manifest'],
         $entry['permit_number'],
         $entry['position_number'],
         $entry['operation_request'],
         $entry['data_inregistrare'],
         $entry['container_number'],
-        $entry['model_container'],
-        $entry['container_type'],
+        $entry['goods_description'],
         $entry['packages'],
         $entry['weight'],
-        $entry['goods_description'],
         $entry['operation_type'],
         $entry['ship_name'],
         $entry['ship_flag'],
-        $entry['summary_number'],
-        $entry['linie_maritima'],
-        $entry['observatii']
+        $entry['summary_number']
     ];
 
     fputcsv($output, $row, ';');

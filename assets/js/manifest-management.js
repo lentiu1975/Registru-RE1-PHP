@@ -9,19 +9,22 @@ async function loadManifestsView() {
     container.innerHTML = `
         <div class="card mb-4">
             <div class="card-body">
-                <div class="row g-3">
+                <div class="row g-3 align-items-end">
                     <div class="col-md-4">
-                        <input type="text" id="manifest-search" class="form-control" placeholder="🔍 Căutare manifest sau navă...">
+                        <label class="form-label small text-muted mb-1">Căutare</label>
+                        <input type="text" id="manifest-search" class="form-control" placeholder="Nr. manifest sau nume navă...">
                     </div>
                     <div class="col-md-3">
-                        <input type="date" id="date-from" class="form-control" placeholder="De la data">
+                        <label class="form-label small text-muted mb-1">Data început</label>
+                        <input type="date" id="date-from" class="form-control">
                     </div>
                     <div class="col-md-3">
-                        <input type="date" id="date-to" class="form-control" placeholder="Până la data">
+                        <label class="form-label small text-muted mb-1">Data sfârșit</label>
+                        <input type="date" id="date-to" class="form-control">
                     </div>
                     <div class="col-md-2">
                         <button onclick="searchManifests()" class="btn btn-primary w-100">
-                            🔍 Caută
+                            <i class="bi bi-search"></i> Caută
                         </button>
                     </div>
                 </div>
@@ -113,16 +116,16 @@ async function loadManifests(page = 1) {
                     <td>${escapeHtml(manifest.ship_name || '-')}</td>
                     <td>${formatDate(manifest.arrival_date)}</td>
                     <td><span class="badge bg-primary">${manifest.container_count}</span></td>
-                    <td>-</td>
-                    <td>
-                        <button onclick="viewManifestDetails('${escapeHtml(manifest.manifest_number)}')" class="btn btn-sm btn-info" title="Detalii">
-                            👁️
+                    <td>${escapeHtml(manifest.created_by_username || '-')}</td>
+                    <td style="white-space:nowrap;">
+                        <button onclick="viewManifestDetails('${escapeHtml(manifest.manifest_number)}')" class="btn btn-sm me-1" style="background:#3b82f6;color:white;border:none;">
+                            <i class="bi bi-eye"></i> Detalii
                         </button>
-                        <button onclick="exportManifest('${escapeHtml(manifest.manifest_number)}')" class="btn btn-sm btn-success" title="Export Excel">
-                            📥
+                        <button onclick="exportManifest('${escapeHtml(manifest.manifest_number)}')" class="btn btn-sm me-1" style="background:#22c55e;color:white;border:none;">
+                            <i class="bi bi-file-earmark-excel"></i> Excel
                         </button>
-                        <button onclick="deleteManifest('${escapeHtml(manifest.manifest_number)}')" class="btn btn-sm btn-danger" title="Șterge">
-                            🗑️
+                        <button onclick="deleteManifest('${escapeHtml(manifest.manifest_number)}')" class="btn btn-sm" style="background:#ef4444;color:white;border:none;">
+                            <i class="bi bi-trash"></i> Șterge
                         </button>
                     </td>
                 </tr>
@@ -237,35 +240,27 @@ async function viewManifestDetails(manifestNumber) {
                 </div>
                 <div class="col-md-6">
                     <h5>Statistici</h5>
-                    <div class="row text-center">
-                        <div class="col-3">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body">
-                                    <h3>${stats.total_containers}</h3>
+                    <div class="row text-center g-2">
+                        <div class="col-4">
+                            <div class="card bg-primary text-white h-100">
+                                <div class="card-body py-3">
+                                    <h3 class="mb-1">${stats.total_containers}</h3>
                                     <small>Total Containere</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-3">
-                            <div class="card bg-warning text-dark">
-                                <div class="card-body">
-                                    <h3>${stats.duplicate_containers || 0}</h3>
+                        <div class="col-4">
+                            <div class="card bg-warning text-dark h-100">
+                                <div class="card-body py-3">
+                                    <h3 class="mb-1">${stats.duplicate_containers || 0}</h3>
                                     <small>Duplicate</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-3">
-                            <div class="card bg-success text-white">
-                                <div class="card-body">
-                                    <h3>${stats.containers_with_goods}</h3>
-                                    <small>Cu Descriere</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="card bg-info text-white">
-                                <div class="card-body">
-                                    <h3>${stats.containers_with_observations || 0}</h3>
+                        <div class="col-4">
+                            <div class="card bg-info text-white h-100">
+                                <div class="card-body py-3">
+                                    <h3 class="mb-1">${stats.containers_with_observations || 0}</h3>
                                     <small>Cu Observații</small>
                                 </div>
                             </div>
@@ -279,20 +274,21 @@ async function viewManifestDetails(manifestNumber) {
                 <table class="table table-sm table-striped table-bordered">
                     <thead class="table-light sticky-top">
                         <tr>
-                            <th>Nr. Crt.</th>
-                            <th>Container</th>
-                            <th>Model Container</th>
-                            <th>Tip Container</th>
+                            <th>Numar Manifest</th>
                             <th>Numar Permis</th>
                             <th>Numar Pozitie</th>
                             <th>Cerere Operatiune</th>
-                            <th>Numar Colete</th>
-                            <th>Greutate (kg)</th>
+                            <th>Data Inregistrare</th>
+                            <th>Container</th>
                             <th>Descriere Marfa</th>
+                            <th>Numar Colete</th>
+                            <th>Greutate Bruta</th>
                             <th>Tip Operatiune</th>
                             <th>Nume Nava</th>
                             <th>Pavilion Nava</th>
                             <th>Numar Sumara</th>
+                            <th>Tip Container</th>
+                            <th>Model Container</th>
                             <th>Linie Maritima</th>
                             <th>Observatii</th>
                         </tr>
@@ -313,22 +309,23 @@ async function viewManifestDetails(manifestNumber) {
 
             html += `
                 <tr data-entry-id="${c.id}">
-                    <td>${c.numar_curent || (index + 1)}</td>
-                    <td class="${containerCellClass}"><strong>${escapeHtml(c.container_number || '-')}</strong></td>
-                    <td>${escapeHtml(c.model_container || '-')}</td>
-                    <td>${escapeHtml(c.container_type || '-')}</td>
+                    <td>${escapeHtml(c.numar_manifest || '-')}</td>
                     <td>${escapeHtml(c.permit_number || '-')}</td>
                     <td>${escapeHtml(c.position_number || '-')}</td>
                     <td>${escapeHtml(c.operation_request || '-')}</td>
+                    <td>${formatDate(c.data_inregistrare)}</td>
+                    <td class="${containerCellClass}"><strong>${escapeHtml(c.container_number || '-')}</strong></td>
+                    <td>${escapeHtml(c.goods_description || '-')}</td>
                     <td>${c.packages || '-'}</td>
                     <td>${c.weight || '-'}</td>
-                    <td>${escapeHtml(c.goods_description || '-')}</td>
                     <td>${escapeHtml(c.operation_type || '-')}</td>
                     <td>${escapeHtml(c.ship_name || '-')}</td>
                     <td>${escapeHtml(c.ship_flag || '-')}</td>
                     <td>${escapeHtml(c.summary_number || '-')}</td>
-                    <td class="editable" data-field="linie_maritima" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${escapeHtml(c.linie_maritima || '-')}</td>
-                    <td class="editable" data-field="observatii" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${escapeHtml(c.observatii || '-')}</td>
+                    <td>${escapeHtml(c.container_type || '-')}</td>
+                    <td>${escapeHtml(c.model_container || '-')}</td>
+                    <td class="editable" data-field="linie_maritima" data-entry-id="${c.id}" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${escapeHtml(c.linie_maritima || '-')}</td>
+                    <td class="editable" data-field="observatii" data-entry-id="${c.id}" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${escapeHtml(c.observatii || '-')}</td>
                 </tr>
             `;
         });
@@ -353,7 +350,9 @@ async function viewManifestDetails(manifestNumber) {
 }
 
 function exportManifest(manifestNumber) {
-    window.location.href = 'api/manifests/export.php?manifest_number=' + encodeURIComponent(manifestNumber);
+    console.log('Export called for:', manifestNumber);
+    // Deschidem direct în fereastră nouă
+    window.open('api/manifests/export.php?manifest_number=' + encodeURIComponent(manifestNumber), '_blank');
 }
 
 async function deleteManifest(manifestNumber) {

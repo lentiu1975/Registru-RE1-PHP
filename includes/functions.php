@@ -255,3 +255,31 @@ function paginate($totalItems, $itemsPerPage = 20, $currentPage = 1) {
         'has_next' => $currentPage < $totalPages
     ];
 }
+
+/**
+ * Obține anul de bază de date activ (implicit)
+ */
+function getActiveYear() {
+    $year = dbFetchOne("SELECT * FROM database_years WHERE is_active = 1 LIMIT 1");
+    if (!$year) {
+        // Dacă nu există an activ, creează 2025 ca implicit
+        dbQuery("INSERT IGNORE INTO database_years (year, is_active) VALUES (?, 1)", [date('Y')]);
+        $year = dbFetchOne("SELECT * FROM database_years WHERE is_active = 1 LIMIT 1");
+    }
+    return $year;
+}
+
+/**
+ * Obține ID-ul anului activ
+ */
+function getActiveYearId() {
+    $year = getActiveYear();
+    return $year ? $year['id'] : null;
+}
+
+/**
+ * Obține toate anii disponibili
+ */
+function getAllYears() {
+    return dbFetchAll("SELECT * FROM database_years ORDER BY year DESC");
+}

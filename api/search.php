@@ -23,6 +23,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $query = trim($_GET['q'] ?? '');
+$yearId = $_GET['year_id'] ?? null;
 
 if (empty($query)) {
     jsonResponse(['error' => 'Query de căutare lipsă'], 400);
@@ -34,18 +35,30 @@ if ($digitCount < 7) {
     jsonResponse(['error' => 'Introduceți minim 7 cifre pentru căutare'], 400);
 }
 
-// Căutare simpla fara JOIN cu ships (ship_id nu e populat in manifests)
+// Dacă nu e specificat anul, folosește anul activ
+if (!$yearId) {
+    $activeYear = getActiveYear();
+    $yearId = $activeYear ? $activeYear['id'] : null;
+}
+
+// Căutare cu filtrare după anul selectat
 $sql = "SELECT me.*, m.manifest_number, m.arrival_date
         FROM manifest_entries me
         LEFT JOIN manifests m ON me.manifest_id = m.id
-        WHERE me.container_number LIKE ?
+        WHERE (me.container_number LIKE ?
            OR COALESCE(me.goods_description, '') LIKE ?
-           OR COALESCE(m.manifest_number, '') LIKE ?
-        ORDER BY CAST(me.position_number AS UNSIGNED) ASC, me.id ASC
-        LIMIT 100";
+           OR COALESCE(m.manifest_number, '') LIKE ?)";
 
 $searchParam = "%{$query}%";
 $params = [$searchParam, $searchParam, $searchParam];
+
+// Adaugă filtru pentru anul selectat (dacă există)
+if ($yearId) {
+    $sql .= " AND (me.database_year_id = ? OR me.database_year_id IS NULL)";
+    $params[] = $yearId;
+}
+
+$sql .= " ORDER BY CAST(me.position_number AS UNSIGNED) ASC, me.id ASC LIMIT 100";
 
 $results = dbFetchAll($sql, $params);
 

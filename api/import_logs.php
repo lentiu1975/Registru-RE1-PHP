@@ -22,26 +22,35 @@ $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $perPage = isset($_GET['per_page']) ? min(100, max(10, intval($_GET['per_page']))) : 20;
 $offset = ($page - 1) * $perPage;
 
-// Total logs
-$totalResult = dbFetchOne("SELECT COUNT(*) as total FROM import_logs");
-$total = $totalResult['total'] ?? 0;
+try {
+    // Total logs
+    $totalResult = dbFetchOne("SELECT COUNT(*) as total FROM import_logs");
+    $total = $totalResult['total'] ?? 0;
 
-// Fetch logs with user info
-$logs = dbFetchAll(
-    "SELECT il.*, u.username
-     FROM import_logs il
-     LEFT JOIN users u ON il.user_id = u.id
-     ORDER BY il.created_at DESC
-     LIMIT ? OFFSET ?",
-    [$perPage, $offset]
-);
+    // Fetch logs - structura: id, filename, rows_imported, rows_failed, status, error_message, created_at
+    $logs = dbFetchAll(
+        "SELECT * FROM import_logs ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        [$perPage, $offset]
+    );
 
-jsonResponse([
-    'data' => $logs,
-    'pagination' => [
-        'total' => $total,
-        'page' => $page,
-        'per_page' => $perPage,
-        'total_pages' => ceil($total / $perPage)
-    ]
-]);
+    jsonResponse([
+        'data' => $logs ?: [],
+        'pagination' => [
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'total_pages' => $total > 0 ? ceil($total / $perPage) : 1
+        ]
+    ]);
+} catch (Exception $e) {
+    jsonResponse([
+        'data' => [],
+        'pagination' => [
+            'total' => 0,
+            'page' => 1,
+            'per_page' => $perPage,
+            'total_pages' => 1
+        ],
+        'message' => 'Nu există istoric de import'
+    ]);
+}

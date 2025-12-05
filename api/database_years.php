@@ -16,7 +16,14 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 switch ($method) {
     case 'GET':
-        $years = dbFetchAll("SELECT * FROM database_years ORDER BY year DESC");
+        // Include numărul de containere pentru fiecare an
+        $years = dbFetchAll("
+            SELECT dy.*,
+                   (SELECT COUNT(*) FROM manifest_entries WHERE database_year_id = dy.id) as container_count,
+                   (SELECT COUNT(*) FROM manifests WHERE database_year_id = dy.id) as manifest_count
+            FROM database_years dy
+            ORDER BY dy.year DESC
+        ");
         jsonResponse(['data' => $years]);
         break;
 

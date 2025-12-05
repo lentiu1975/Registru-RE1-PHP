@@ -30,6 +30,8 @@
 
     function performSearch() {
         const query = searchInput.value.trim();
+        const yearSelect = document.getElementById('year');
+        const yearId = yearSelect ? yearSelect.value : '';
 
         // Numără cifrele din query
         const digitCount = (query.match(/\d/g) || []).length;
@@ -41,7 +43,13 @@
         searchLoading.style.display = 'block';
         searchResults.innerHTML = '';
 
-        fetch('/api/search.php?q=' + encodeURIComponent(query))
+        // Adaugă year_id la căutare
+        let searchUrl = '/api/search.php?q=' + encodeURIComponent(query);
+        if (yearId) {
+            searchUrl += '&year_id=' + encodeURIComponent(yearId);
+        }
+
+        fetch(searchUrl)
             .then(response => response.json())
             .then(data => {
                 searchLoading.style.display = 'none';
@@ -135,7 +143,7 @@
         html += '<div class="container-title">' + containerNumber + '</div>';
 
         const containerImage = result.container_image || '/images/containere/Containere.png';
-        html += '<img src="' + containerImage + '" alt="Container" class="container-image-large" style="max-width:300px;max-height:250px;" onerror="this.src=\'/images/containere/Containere.png\'">';
+        html += '<img src="' + containerImage + '" alt="Container" class="container-image-large" onerror="this.src=\'/images/containere/Containere.png\'">';
 
         html += '</div>';
 
@@ -159,7 +167,7 @@
             // Ship image - cautam dupa numele navei (fara spatii, lowercase)
             const shipImageName = shipName.replace(/\s+/g, '_').toLowerCase();
             const shipImgSrc = '/images/nave/' + shipImageName + '.jpg';
-            html += '<img src="' + shipImgSrc + '" alt="Ship" class="ship-image" style="max-width:300px;width:100%;border-radius:8px;margin-top:10px;">';
+            html += '<img src="' + shipImgSrc + '" alt="Ship" class="ship-image">';
 
             html += '</div>';
         }
@@ -183,7 +191,7 @@
                     const manifestNumber = data.manifest_number;
                     const arrivalDate = data.arrival_date ? new Date(data.arrival_date).toLocaleDateString('ro-RO') : 'N/A';
 
-                    infoElement.innerHTML = 'Ultimul navă actualizată: <strong>' + shipName.toUpperCase() + '</strong>, manifest <strong>' + manifestNumber + '</strong> din data <strong>' + arrivalDate + '</strong>';
+                    infoElement.innerHTML = 'Ultima navă actualizată: <strong>' + shipName.toUpperCase() + '</strong>, manifest <strong>' + manifestNumber + '</strong> din data <strong>' + arrivalDate + '</strong>';
                 } else {
                     infoElement.innerHTML = 'Nicio informație disponibilă';
                 }

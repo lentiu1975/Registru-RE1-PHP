@@ -71,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 15px;
         }
         .login-container {
             max-width: 450px;
@@ -104,9 +105,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 16px;
             font-weight: 500;
             width: 100%;
+            min-height: 48px;
         }
         .btn-login:hover {
             background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+        }
+        .form-control {
+            font-size: 16px;
+            padding: 12px 16px;
+            min-height: 48px;
+        }
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 10px;
+            }
+            .login-card {
+                padding: 25px 20px;
+                border-radius: 12px;
+            }
+            .login-header h1 {
+                font-size: 20px;
+            }
+            .login-header {
+                margin-bottom: 20px;
+            }
         }
     </style>
 </head>

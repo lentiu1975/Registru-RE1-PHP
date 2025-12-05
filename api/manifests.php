@@ -274,12 +274,14 @@ function getManifests($page, $perPage, $search) {
     // Calculează paginare
     $pagination = paginate($total, $perPage, $page);
 
-    // Query pentru manifeste
+    // Query pentru manifeste - numără containerele după permit_number (numărul manifestului)
     $sql = "SELECT m.*, s.name as ship_name, p.name as port_name,
-            (SELECT COUNT(*) FROM manifest_entries WHERE manifest_id = m.id) as entries_count
+            u.username as created_by_username,
+            (SELECT COUNT(*) FROM manifest_entries WHERE permit_number = m.manifest_number) as entries_count
             FROM manifests m
             LEFT JOIN ships s ON m.ship_id = s.id
             LEFT JOIN ports p ON m.port_id = p.id
+            LEFT JOIN users u ON m.created_by = u.id
             WHERE 1=1";
 
     if ($search) {

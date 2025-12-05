@@ -108,8 +108,30 @@ body {
     visibility: hidden;
 }
 
+.header-user-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.username-display {
+    color: #666;
+    font-size: 14px;
+}
+
+.admin-link {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.admin-link:hover {
+    text-decoration: underline;
+}
+
 .logout-button {
-    padding: 10px 25px;
+    padding: 8px 20px;
     background: #e74c3c;
     color: white;
     border: none;
@@ -401,7 +423,8 @@ body {
 }
 
 .container-image-large {
-    max-width: 300px;
+    max-width: 100%;
+    width: auto;
     max-height: 250px;
     object-fit: contain;
     border-radius: 12px;
@@ -438,31 +461,412 @@ body {
 
 .ship-image {
     max-width: 100%;
+    width: auto;
     max-height: 250px;
     object-fit: contain;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-top: 10px;
 }
 
-/* Responsive */
+/* Responsive - Tablet */
 @media (max-width: 1024px) {
     .result-details {
         grid-template-columns: 1fr;
     }
+
+    .details-right {
+        order: -1;
+    }
 }
 
-@media (max-width: 768px) {
+/* Responsive - Mobile */
+@media screen and (max-width: 768px) {
+    /* Force all content to stay within viewport */
+    * {
+        max-width: 100%;
+    }
+
+    body {
+        overflow-x: hidden;
+    }
+
+    .search-container {
+        overflow-x: hidden;
+    }
+
+    /* Header */
+    .search-header {
+        padding: 10px 0;
+    }
+
+    .header-content {
+        flex-direction: column;
+        gap: 8px;
+        padding: 0 10px;
+        text-align: center;
+    }
+
+    .header-content h1 {
+        font-size: 16px;
+        line-height: 1.3;
+    }
+
+    .header-user-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .username-display {
+        width: 100%;
+        text-align: center;
+        font-size: 11px;
+        color: #888;
+    }
+
+    .admin-link {
+        font-size: 12px;
+        padding: 6px 12px;
+        background: #667eea;
+        color: white;
+        border-radius: 4px;
+    }
+
+    .logout-button {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    /* Info Bar */
+    .info-bar {
+        padding: 8px 10px;
+    }
+
+    .info-bar-content {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 0;
+        text-align: center;
+    }
+
+    .home-button {
+        display: none;
+    }
+
+    .home-button-spacer {
+        display: none;
+    }
+
+    .latest-manifest-info {
+        font-size: 11px;
+        line-height: 1.4;
+        padding: 0 5px;
+    }
+
+    /* Search Content */
+    .search-content {
+        padding: 8px;
+    }
+
+    .search-section {
+        padding: 12px;
+        border-radius: 8px;
+    }
+
     .form-row-horizontal {
         flex-direction: column;
+        gap: 10px;
     }
-    
-    .year-select,
-    .container-search {
+
+    .form-group {
         width: 100%;
     }
-    
+
+    .form-group label {
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+
+    .year-select {
+        flex: none;
+        width: 100%;
+    }
+
+    .container-search {
+        flex: none;
+        width: 100%;
+        min-width: unset;
+    }
+
+    .year-dropdown,
+    .container-input {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
+
+    .search-button {
+        width: 100%;
+        padding: 14px;
+        font-size: 14px;
+        min-height: 48px;
+        border-radius: 6px;
+    }
+
+    /* Results Navigation */
+    .results-navigation {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+        padding-top: 12px;
+        margin-top: 12px;
+    }
+
+    .results-count {
+        font-size: 13px;
+    }
+
+    .navigation-buttons {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .nav-button {
+        flex: 1;
+        min-height: 44px;
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+
+    .current-position {
+        font-size: 12px;
+        min-width: 50px;
+    }
+
+    /* Results Section */
+    .results-section {
+        border-radius: 8px;
+        margin-top: 12px;
+        overflow: hidden;
+    }
+
+    .result-details {
+        min-height: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
     .details-left,
     .details-right {
-        padding: 20px;
+        padding: 12px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .details-left {
+        gap: 10px;
+        order: 1;
+    }
+
+    .details-right {
+        gap: 10px;
+        order: 2;
+        background: #f8f9fa;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+    .position-title {
+        font-size: 18px;
+        margin-bottom: 5px;
+    }
+
+    /* IMPORTANT: Manifest Info - Break text properly */
+    .manifest-info {
+        font-size: 12px;
+        padding: 10px;
+        line-height: 1.6;
+        word-break: break-all;
+        overflow-wrap: break-word;
+        hyphens: auto;
+    }
+
+    .info-item {
+        flex-direction: column;
+        gap: 2px;
+        padding: 6px 0;
+    }
+
+    .info-item.info-row {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .info-col {
+        flex: 1;
+        min-width: 45%;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .info-label {
+        min-width: unset;
+        font-size: 11px;
+        color: #666;
+        font-weight: 600;
+    }
+
+    .info-value {
+        font-size: 13px;
+    }
+
+    .info-item.description {
+        flex-direction: column;
+    }
+
+    .info-item.description .info-label {
+        text-align: left;
+    }
+
+    .info-item.description .info-value {
+        text-align: left;
+        padding: 8px;
+        font-size: 12px;
+        line-height: 1.5;
+        background: #fff;
+        border-radius: 4px;
+        word-break: break-word;
+    }
+
+    /* Container Section - Side by side */
+    .container-section {
+        padding: 5px;
+        width: 48%;
+        min-width: 140px;
+        text-align: center;
+        flex: 1;
+    }
+
+    .container-title {
+        font-size: 11px;
+        margin-bottom: 5px;
+        letter-spacing: 0;
+        word-break: break-all;
+    }
+
+    .container-image-large {
+        max-width: 100%;
+        width: auto;
+        max-height: 80px;
+        border-radius: 6px;
+        display: block;
+        margin: 0 auto;
+    }
+
+    /* Ship Section - Side by side */
+    .ship-section {
+        padding: 5px;
+        width: 48%;
+        min-width: 140px;
+        text-align: center;
+        flex: 1;
+    }
+
+    .ship-title {
+        font-size: 11px !important;
+        margin-bottom: 5px;
+        word-break: break-word;
+    }
+
+    .ship-header {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px;
+    }
+
+    .ship-name {
+        font-size: 11px;
+    }
+
+    .ship-image {
+        max-width: 100%;
+        width: auto;
+        max-height: 80px;
+        object-fit: contain;
+        border-radius: 6px;
+        display: block;
+        margin: 3px auto 0;
+    }
+
+    .flag-icon {
+        width: 16px !important;
+        height: 11px !important;
+    }
+}
+
+/* Responsive - Telefoane foarte mici (sub 400px) */
+@media screen and (max-width: 400px) {
+    .header-content h1 {
+        font-size: 14px;
+    }
+
+    .search-content {
+        padding: 5px;
+    }
+
+    .search-section {
+        padding: 10px;
+    }
+
+    .year-dropdown,
+    .container-input {
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    .search-button {
+        padding: 12px;
+        font-size: 13px;
+    }
+
+    .position-title {
+        font-size: 16px;
+    }
+
+    .manifest-info {
+        font-size: 11px;
+        padding: 8px;
+    }
+
+    .container-title {
+        font-size: 12px;
+    }
+
+    .container-image-large {
+        max-height: 100px;
+    }
+
+    .ship-image {
+        max-height: 80px;
+    }
+
+    .info-label {
+        font-size: 10px;
+    }
+
+    .info-value {
+        font-size: 12px;
     }
 }

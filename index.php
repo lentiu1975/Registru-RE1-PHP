@@ -16,6 +16,10 @@ if (!$currentUser) {
     header('Location: login.php');
     exit;
 }
+
+// Încarcă anii disponibili din baza de date
+$years = getAllYears();
+$activeYear = getActiveYear();
 ?>
 <!DOCTYPE html>
 <html lang="ro">
@@ -31,13 +35,13 @@ if (!$currentUser) {
         <!-- Header -->
         <header class="search-header">
             <div class="header-content">
-                <h1>Registru import RE1 2025</h1>
-                <div>
-                    <span style="color: #ccc; margin-right: 15px;"><?= htmlspecialchars($currentUser['username']) ?></span>
+                <h1>Registru Import RE1</h1>
+                <div class="header-user-actions">
+                    <span class="username-display"><?= htmlspecialchars($currentUser['username']) ?></span>
                     <?php if ($currentUser['is_admin']): ?>
-                    <a href="/admin_new.php" style="color: #ffc107; margin-right: 15px; text-decoration: none;">Admin</a>
+                    <a href="/admin_new.php" class="admin-link">Admin</a>
                     <?php endif; ?>
-                    <button onclick="window.location.href='/logout.php'" class="logout-button">Deconectare</button>
+                    <button onclick="window.location.href='/logout.php'" class="logout-button">Ieșire</button>
                 </div>
             </div>
         </header>
@@ -68,7 +72,14 @@ if (!$currentUser) {
                         <div class="form-group year-select">
                             <label for="year">An:</label>
                             <select id="year" class="year-dropdown">
-                                <option value="2025" selected>2025 (Activ)</option>
+                                <?php foreach ($years as $year): ?>
+                                <option value="<?= $year['id'] ?>" <?= ($year['is_active'] ? 'selected' : '') ?>>
+                                    <?= $year['year'] ?><?= ($year['is_active'] ? ' (Activ)' : '') ?>
+                                </option>
+                                <?php endforeach; ?>
+                                <?php if (empty($years)): ?>
+                                <option value=""><?= date('Y') ?></option>
+                                <?php endif; ?>
                             </select>
                         </div>
 

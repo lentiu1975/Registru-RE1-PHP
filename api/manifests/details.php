@@ -27,7 +27,8 @@ $manifestInfo = dbFetchOne(
         m.manifest_number,
         m.arrival_date,
         m.created_at,
-        (SELECT ship_name FROM manifest_entries WHERE permit_number = m.manifest_number LIMIT 1) as ship_name
+        (SELECT ship_name FROM manifest_entries WHERE permit_number = m.manifest_number LIMIT 1) as ship_name,
+        (SELECT username FROM users WHERE id = m.created_by LIMIT 1) as created_by_username
      FROM manifests m
      WHERE m.manifest_number = ?",
     [$manifestNumber]

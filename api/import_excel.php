@@ -161,6 +161,13 @@ try {
     $errorDetails = [];
     $total = 0;
 
+    // Obține anul activ pentru import
+    $activeYearId = getActiveYearId();
+    if (!$activeYearId) {
+        echo json_encode(['success' => false, 'error' => 'Nu există an activ configurat. Configurați un an în Admin > Ani Baze Date.']);
+        exit;
+    }
+
     // Cache pentru manifest IDs - evită crearea de duplicate
     $manifestCache = [];
 
@@ -316,11 +323,12 @@ try {
                         }
                     }
 
-                    // Creează manifestul cu toate datele
+                    // Creează manifestul cu toate datele (inclusiv database_year_id)
+                    $createdBy = $_SESSION['user_id'] ?? null;
                     $stmtManifest = $conn->prepare(
-                        "INSERT INTO manifests (manifest_number, ship_id, arrival_date, created_at) VALUES (?, ?, ?, NOW())"
+                        "INSERT INTO manifests (manifest_number, ship_id, arrival_date, created_by, database_year_id, created_at) VALUES (?, ?, ?, ?, ?, NOW())"
                     );
-                    $stmtManifest->bind_param("sis", $manifestNumber, $shipId, $dataInreg);
+                    $stmtManifest->bind_param("sisii", $manifestNumber, $shipId, $dataInreg, $createdBy, $activeYearId);
                     $stmtManifest->execute();
                     $manifestId = $conn->insert_id;
                     $stmtManifest->close();
@@ -379,19 +387,20 @@ try {
                 $stmt->close();
 
             } else if (!$existingEntry) {
-                // INSERT - înregistrare nouă (cu manifest_id pentru foreign key)
+                // INSERT - înregistrare nouă (cu manifest_id și database_year_id)
                 $sql = "INSERT INTO manifest_entries (
-                    manifest_id, numar_manifest, container_number, container_type, packages, weight,
+                    manifest_id, database_year_id, numar_manifest, container_number, container_type, packages, weight,
                     goods_description, operation_type, ship_name, ship_flag, summary_number,
                     linie_maritima, permit_number, position_number, operation_request,
                     data_inregistrare, observatii, model_container, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
                 $stmt = $conn->prepare($sql);
-                // 18 params: i-s-s-s-i-d-s-s-s-s-s-s-s-s-s-s-s-s
+                // 19 params: i-i-s-s-s-i-d-s-s-s-s-s-s-s-s-s-s-s-s
                 $stmt->bind_param(
-                    "isssidssssssssssss",
+                    "iisssidssssssssssss",
                     $manifestId,
+                    $activeYearId,
                     $insertData['numar_manifest'],
                     $insertData['container_number'],
                     $insertData['container_type'],
@@ -428,6 +437,14 @@ try {
 
     $conn->commit();
 
+    // Salvează în import_logs
+    $logStatus = ($errors > 0) ? 'partial' : 'success';
+    $errorMsg = !empty($errorDetails) ? implode('; ', array_slice($errorDetails, 0, 5)) : null;
+    dbQuery(
+        "INSERT INTO import_logs (filename, rows_imported, rows_updated, rows_skipped, rows_failed, status, error_message, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())",
+        [$fileName, $imported, $updated, $skipped, $errors, $logStatus, $errorMsg, $_SESSION['user_id'] ?? null]
+    );
+
     echo json_encode([
         'success' => true,
         'imported' => $imported,
@@ -442,6 +459,13 @@ try {
     if (isset($conn)) {
         $conn->rollback();
     }
+
+    // Salvează eroarea în import_logs
+    dbQuery(
+        "INSERT INTO import_logs (filename, rows_imported, rows_failed, status, error_message, user_id, created_at) VALUES (?, 0, 0, 'error', ?, ?, NOW())",
+        [$fileName ?? 'unknown', $e->getMessage(), $_SESSION['user_id'] ?? null]
+    );
+
     echo json_encode([
         'success' => false,
         'error' => 'Eroare la procesare: ' . $e->getMessage()

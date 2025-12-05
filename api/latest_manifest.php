@@ -6,8 +6,15 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
+session_start();
 require_once '../config/database.php';
 require_once '../includes/functions.php';
+
+// Verifică autentificare
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['manifest_number' => 'N/A', 'ship_name' => 'N/A', 'arrival_date' => null]);
+    exit;
+}
 
 // Query pentru ultimul manifest (cel mai mare număr de manifest)
 $sql = "SELECT m.manifest_number, m.arrival_date, me.ship_name

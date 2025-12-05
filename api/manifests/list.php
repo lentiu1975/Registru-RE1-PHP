@@ -64,6 +64,7 @@ $dataQuery = "SELECT
     m.arrival_date,
     (SELECT ship_name FROM manifest_entries WHERE permit_number = m.manifest_number LIMIT 1) as ship_name,
     (SELECT COUNT(*) FROM manifest_entries WHERE permit_number = m.manifest_number) as container_count,
+    (SELECT username FROM users WHERE id = m.created_by LIMIT 1) as created_by_username,
     MAX(m.created_at) as created_at
 FROM manifests m
 {$whereClause}

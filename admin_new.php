@@ -74,6 +74,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             padding: 20px 0;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
         }
 
         .sidebar-brand {
@@ -97,6 +99,31 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             list-style: none;
             padding: 0;
             margin: 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .sidebar-footer {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: auto;
+        }
+
+        .sidebar-footer .user-box {
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-footer .user-box .user-label {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .sidebar-footer .user-box .user-name {
+            font-weight: 600;
+            margin-top: 3px;
         }
 
         .sidebar-nav-item {
@@ -266,6 +293,12 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 </a>
             </li>
             <li class="sidebar-nav-item">
+                <a href="#ships" class="sidebar-nav-link" data-tab="ships">
+                    <i class="bi bi-tsunami"></i>
+                    <span>Nave</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
                 <a href="#container-types" class="sidebar-nav-link" data-tab="container-types">
                     <i class="bi bi-box-seam"></i>
                     <span>Tipuri Containere</span>
@@ -302,17 +335,23 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     <span>Istoric Import</span>
                 </a>
             </li>
+            <li class="sidebar-nav-item">
+                <a href="#backup-restore" class="sidebar-nav-link" data-tab="backup-restore">
+                    <i class="bi bi-database-gear"></i>
+                    <span>Backup & Restore</span>
+                </a>
+            </li>
         </ul>
 
-        <div style="position: absolute; bottom: 20px; left: 20px; right: 20px;">
-            <div style="padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                <div style="font-size: 12px; opacity: 0.8;">Conectat ca:</div>
-                <div style="font-weight: 600; margin-top: 5px;"><?= htmlspecialchars($currentUser['username']) ?></div>
+        <div class="sidebar-footer">
+            <div class="user-box">
+                <div class="user-label">Conectat ca:</div>
+                <div class="user-name"><?= htmlspecialchars($currentUser['username']) ?></div>
                 <?php if ($currentUser['is_admin']): ?>
                 <span class="badge bg-warning text-dark mt-2">Administrator</span>
                 <?php endif; ?>
             </div>
-            <a href="logout.php" class="btn btn-light btn-sm w-100 mt-2">
+            <a href="logout.php" class="btn btn-light btn-sm w-100">
                 <i class="bi bi-box-arrow-right"></i> Deconectare
             </a>
         </div>
@@ -470,6 +509,15 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                         <i class="bi bi-plus-circle"></i> An Nou
                     </button>
                 </div>
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Funcționare:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li><strong>Anul Activ</strong> - importurile noi se salvează în acest an</li>
+                        <li><strong>Căutare</strong> - utilizatorii pot selecta anul în care să caute containere</li>
+                        <li>Datele existente fără an asociat vor fi căutate în toate cazurile</li>
+                    </ul>
+                </div>
                 <div id="years-table-container">
                     <p class="text-center text-muted">Se încarcă...</p>
                 </div>
@@ -487,7 +535,68 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                         <i class="bi bi-plus-circle"></i> Pavilion Nou
                     </button>
                 </div>
+
+                <!-- Filtre Pavilioane -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Filtru Steag</label>
+                        <select class="form-select" id="filterPavilionImage" onchange="loadPavilions()">
+                            <option value="">Toate</option>
+                            <option value="with">Cu steag</option>
+                            <option value="without">Fără steag</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Căutare</label>
+                        <input type="text" class="form-control" id="searchPavilion" placeholder="Caută pavilion..." onkeyup="debouncePavilionSearch()">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button class="btn btn-outline-secondary" onclick="resetPavilionFilters()">
+                            <i class="bi bi-x-circle"></i> Resetează
+                        </button>
+                    </div>
+                </div>
+
                 <div id="pavilions-table-container">
+                    <p class="text-center text-muted">Se încarcă...</p>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Ships Tab (Admin only) -->
+        <?php if ($currentUser['is_admin']): ?>
+        <div id="ships-tab" class="tab-pane-content" style="display: none;">
+            <div class="tab-content-section">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Gestionare Nave</h5>
+                    <button class="btn btn-primary" onclick="showShipModal()">
+                        <i class="bi bi-plus-circle"></i> Navă Nouă
+                    </button>
+                </div>
+
+                <!-- Filtre Nave -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Filtru Poză</label>
+                        <select class="form-select" id="filterShipImage" onchange="loadShips()">
+                            <option value="">Toate</option>
+                            <option value="with">Cu poză</option>
+                            <option value="without">Fără poză</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Căutare</label>
+                        <input type="text" class="form-control" id="searchShip" placeholder="Caută navă..." onkeyup="debounceShipSearch()">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button class="btn btn-outline-secondary" onclick="resetShipFilters()">
+                            <i class="bi bi-x-circle"></i> Resetează
+                        </button>
+                    </div>
+                </div>
+
+                <div id="ships-table-container">
                     <p class="text-center text-muted">Se încarcă...</p>
                 </div>
             </div>
@@ -504,6 +613,34 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                         <i class="bi bi-plus-circle"></i> Tip Nou
                     </button>
                 </div>
+
+                <!-- Filtre și Căutare -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Filtru Tip Container</label>
+                        <select class="form-select" id="filterTipContainer" onchange="loadContainerTypes()">
+                            <option value="">Toate tipurile</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Filtru Poză</label>
+                        <select class="form-select" id="filterContainerImage" onchange="loadContainerTypes()">
+                            <option value="">Toate</option>
+                            <option value="with">Cu poză</option>
+                            <option value="without">Fără poză</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Căutare</label>
+                        <input type="text" class="form-control" id="searchContainerType" placeholder="Caută model..." onkeyup="debounceContainerSearch()">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-outline-secondary" onclick="resetContainerFilters()">
+                            <i class="bi bi-x-circle"></i> Resetează
+                        </button>
+                    </div>
+                </div>
+
                 <div id="container-types-table-container">
                     <p class="text-center text-muted">Se încarcă...</p>
                 </div>
@@ -566,6 +703,43 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             <div class="tab-content-section">
                 <h5 class="mb-3">Istoric Import</h5>
                 <div id="logs-table-container">
+                    <p class="text-center text-muted">Se încarcă...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backup & Restore Tab -->
+        <div id="backup-restore-tab" class="tab-pane-content" style="display: none;">
+            <div class="tab-content-section">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-primary mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <i class="bi bi-database-add"></i> Creează Backup
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Creează un backup complet al bazei de date (utilizatori, manifeste, containere, setări).</p>
+                                <button class="btn btn-primary" onclick="createBackup()">
+                                    <i class="bi bi-download"></i> Creează Backup Acum
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-warning mb-4">
+                            <div class="card-header bg-warning text-dark">
+                                <i class="bi bi-exclamation-triangle"></i> Restaurare
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text text-danger"><strong>Atenție!</strong> Restaurarea va suprascrie toate datele curente!</p>
+                                <p class="card-text">Selectează un backup din lista de mai jos pentru restaurare.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mb-3"><i class="bi bi-archive"></i> Backup-uri Existente</h5>
+                <div id="backups-list">
                     <p class="text-center text-muted">Se încarcă...</p>
                 </div>
             </div>
@@ -692,14 +866,49 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                             <input type="text" class="form-control" id="pavilionCountry" name="country_name" placeholder="ex: Republica Liberia">
                         </div>
                         <div class="mb-3">
-                            <label for="pavilionImage" class="form-label">URL Imagine Steag</label>
-                            <input type="text" class="form-control" id="pavilionImage" name="flag_image" placeholder="ex: /uploads/pavilions/liberia.png">
+                            <label for="pavilionImageFile" class="form-label">Imagine Steag</label>
+                            <input type="file" class="form-control" id="pavilionImageFile" name="image_file" accept="image/*">
+                            <input type="hidden" id="pavilionImage" name="flag_image">
+                            <div id="pavilionImagePreview" class="mt-2"></div>
+                            <small class="text-muted">Formate acceptate: JPG, PNG, GIF, WebP, SVG (max 5MB)</small>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulează</button>
                     <button type="button" class="btn btn-primary" onclick="savePavilion()">Salvează</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ship -->
+    <div class="modal fade" id="shipModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="shipModalTitle">Navă Nouă</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="shipForm">
+                        <input type="hidden" id="shipId" name="id">
+                        <div class="mb-3">
+                            <label for="shipName" class="form-label">Nume Navă *</label>
+                            <input type="text" class="form-control" id="shipName" name="name" required placeholder="ex: MSC MARINA">
+                        </div>
+                        <div class="mb-3">
+                            <label for="shipImageFile" class="form-label">Imagine Navă</label>
+                            <input type="file" class="form-control" id="shipImageFile" name="image_file" accept="image/*">
+                            <input type="hidden" id="shipImage" name="image">
+                            <div id="shipImagePreview" class="mt-2"></div>
+                            <small class="text-muted">Formate acceptate: JPG, PNG, GIF, WebP (max 5MB)</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulează</button>
+                    <button type="button" class="btn btn-primary" onclick="saveShip()">Salvează</button>
                 </div>
             </div>
         </div>
@@ -717,24 +926,22 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     <form id="containerTypeForm">
                         <input type="hidden" id="containerTypeId" name="id">
                         <div class="mb-3">
-                            <label for="containerModelCode" class="form-label">Model Container *</label>
-                            <input type="text" class="form-control" id="containerModelCode" name="model_code" required placeholder="ex: SUDU22G1">
+                            <label for="containerModelContainer" class="form-label">Model Container *</label>
+                            <input type="text" class="form-control" id="containerModelContainer" name="model_container" required placeholder="ex: MRSU45G1">
                         </div>
                         <div class="mb-3">
-                            <label for="containerTypeCode" class="form-label">Tip Container</label>
-                            <input type="text" class="form-control" id="containerTypeCode" name="type_code" placeholder="ex: 22G1">
+                            <label for="containerTipContainer" class="form-label">Tip Container</label>
+                            <input type="text" class="form-control" id="containerTipContainer" name="tip_container" placeholder="ex: 45G1">
                         </div>
                         <div class="mb-3">
-                            <label for="containerPrefix" class="form-label">Prefix</label>
-                            <input type="text" class="form-control" id="containerPrefix" name="prefix" placeholder="ex: SUDU">
+                            <label for="containerDescriere" class="form-label">Descriere</label>
+                            <textarea class="form-control" id="containerDescriere" name="descriere" rows="2"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label for="containerDescription" class="form-label">Descriere</label>
-                            <textarea class="form-control" id="containerDescription" name="description" rows="2"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="containerImage" class="form-label">URL Imagine</label>
-                            <input type="text" class="form-control" id="containerImage" name="image" placeholder="ex: /uploads/containers/22g1.jpg">
+                            <label for="containerImagineFile" class="form-label">Imagine</label>
+                            <input type="file" class="form-control" id="containerImagineFile" name="imagine_file" accept="image/*">
+                            <input type="hidden" id="containerImagine" name="imagine">
+                            <div id="containerImaginePreview" class="mt-2"></div>
                         </div>
                     </form>
                 </div>
@@ -829,8 +1036,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/import-excel.js?v=20250130b"></script>
-    <script src="assets/js/manifest-management.js?v=20250130b"></script>
+    <script src="assets/js/import-excel.js?v=20251205"></script>
+    <script src="assets/js/manifest-management.js?v=20251205"></script>
     <script>
         // Tab switching
         function switchTab(tabName) {
@@ -884,6 +1091,9 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 case 'pavilions':
                     loadPavilions();
                     break;
+                case 'ships':
+                    loadShips();
+                    break;
                 case 'container-types':
                     loadContainerTypes();
                     break;
@@ -901,6 +1111,9 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     break;
                 case 'import-logs':
                     loadImportLogs();
+                    break;
+                case 'backup-restore':
+                    loadBackups();
                     break;
             }
         }
@@ -1083,7 +1296,10 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     return;
                 }
 
-                // Populează formularul
+                // Prima dată deschide modalul (care face reset la form)
+                showUserModal(userId);
+
+                // Apoi populează formularul cu datele utilizatorului
                 document.getElementById('userId').value = user.id;
                 document.getElementById('username').value = user.username || '';
                 document.getElementById('email').value = user.email || '';
@@ -1092,8 +1308,6 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 document.getElementById('isActive').checked = user.is_active == 1;
                 document.getElementById('isAdmin').checked = user.is_admin == 1;
                 document.getElementById('password').value = '';
-
-                showUserModal(userId);
 
             } catch (error) {
                 alert('Eroare la încărcarea utilizatorului: ' + error.message);
@@ -1244,6 +1458,57 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             return date.toLocaleDateString('ro-RO') + ' ' + date.toLocaleTimeString('ro-RO', {hour: '2-digit', minute: '2-digit'});
         }
 
+        // Loading overlay
+        function showLoading(message = 'Se procesează...') {
+            let overlay = document.getElementById('loadingOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'loadingOverlay';
+                overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+                overlay.innerHTML = `<div style="background:white;padding:30px 50px;border-radius:10px;text-align:center;">
+                    <div class="spinner-border text-primary mb-3"></div>
+                    <p id="loadingMessage" style="margin:0;">${message}</p>
+                </div>`;
+                document.body.appendChild(overlay);
+            } else {
+                document.getElementById('loadingMessage').textContent = message;
+                overlay.style.display = 'flex';
+            }
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;';
+                document.body.appendChild(container);
+            }
+
+            const bgColors = {
+                success: '#28a745',
+                danger: '#dc3545',
+                warning: '#ffc107',
+                info: '#17a2b8'
+            };
+
+            const toast = document.createElement('div');
+            toast.style.cssText = `background:${bgColors[type] || bgColors.info};color:${type === 'warning' ? '#000' : '#fff'};padding:15px 25px;border-radius:8px;margin-bottom:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:400px;animation:slideIn 0.3s ease;`;
+            toast.innerHTML = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
         // =============================================
         // ANI BAZE DATE MANAGEMENT
         // =============================================
@@ -1272,9 +1537,10 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                         <table class="table table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th>ID</th>
                                     <th>An</th>
                                     <th>Status</th>
+                                    <th>Manifeste</th>
+                                    <th>Containere</th>
                                     <th>Data Creare</th>
                                     <th>Acțiuni</th>
                                 </tr>
@@ -1284,21 +1550,26 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
 
                 years.forEach(year => {
                     const statusBadge = year.is_active == 1
-                        ? '<span class="badge bg-success">Activ</span>'
+                        ? '<span class="badge bg-success">Activ (Import)</span>'
                         : '<span class="badge bg-secondary">Inactiv</span>';
                     const createdAt = year.created_at ? formatDateTime(year.created_at) : '-';
+                    const containerCount = year.container_count || 0;
+                    const manifestCount = year.manifest_count || 0;
 
                     html += `
-                        <tr>
-                            <td>${year.id}</td>
+                        <tr class="${year.is_active == 1 ? 'table-success' : ''}">
                             <td><strong>Registru ${year.year}</strong></td>
                             <td>${statusBadge}</td>
+                            <td><span class="badge bg-info">${manifestCount}</span></td>
+                            <td><span class="badge bg-primary">${containerCount.toLocaleString()}</span></td>
                             <td>${createdAt}</td>
                             <td class="table-actions">
-                                <button class="btn btn-sm btn-outline-success" onclick="activateYear(${year.id})" title="Activează">
-                                    <i class="bi bi-check-circle"></i>
+                                ${year.is_active != 1 ? `
+                                <button class="btn btn-sm btn-outline-success" onclick="activateYear(${year.id})" title="Setează ca an activ pentru import">
+                                    <i class="bi bi-check-circle"></i> Activează
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteYear(${year.id}, ${year.year})" title="Șterge">
+                                ` : '<span class="text-success"><i class="bi bi-check-lg"></i> An curent</span>'}
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteYear(${year.id}, ${year.year})" title="Șterge" ${year.is_active == 1 ? 'disabled' : ''}>
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -1404,12 +1675,33 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         // =============================================
         // PAVILIOANE MANAGEMENT
         // =============================================
+        let pavilionSearchTimeout = null;
+
+        function debouncePavilionSearch() {
+            clearTimeout(pavilionSearchTimeout);
+            pavilionSearchTimeout = setTimeout(() => loadPavilions(), 300);
+        }
+
+        function resetPavilionFilters() {
+            document.getElementById('filterPavilionImage').value = '';
+            document.getElementById('searchPavilion').value = '';
+            loadPavilions();
+        }
+
         async function loadPavilions() {
             const container = document.getElementById('pavilions-table-container');
             container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
 
+            // Construiește URL cu parametri de filtrare
+            const imageFilter = document.getElementById('filterPavilionImage')?.value || '';
+            const search = document.getElementById('searchPavilion')?.value || '';
+
+            let url = 'api/pavilions.php?';
+            if (imageFilter) url += `has_image=${encodeURIComponent(imageFilter)}&`;
+            if (search) url += `search=${encodeURIComponent(search)}&`;
+
             try {
-                const response = await fetch('api/pavilions.php');
+                const response = await fetch(url);
                 const result = await response.json();
 
                 if (result.error) {
@@ -1476,6 +1768,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             const modal = new bootstrap.Modal(document.getElementById('pavilionModal'));
             document.getElementById('pavilionForm').reset();
             document.getElementById('pavilionId').value = '';
+            document.getElementById('pavilionImage').value = '';
+            document.getElementById('pavilionImagePreview').innerHTML = '';
             document.getElementById('pavilionModalTitle').textContent = 'Pavilion Nou';
             modal.show();
         }
@@ -1494,7 +1788,17 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 document.getElementById('pavilionName').value = p.name || '';
                 document.getElementById('pavilionCountry').value = p.country_name || '';
                 document.getElementById('pavilionImage').value = p.flag_image || '';
+                document.getElementById('pavilionImageFile').value = ''; // Reset file input
                 document.getElementById('pavilionModalTitle').textContent = 'Editare Pavilion';
+
+                // Afișează preview dacă există imagine
+                const preview = document.getElementById('pavilionImagePreview');
+                if (p.flag_image) {
+                    preview.innerHTML = `<img src="${p.flag_image}" style="max-width: 100px; max-height: 60px; border: 1px solid #ddd; border-radius: 4px;" alt="Preview">
+                                         <small class="d-block text-muted">Imagine actuală</small>`;
+                } else {
+                    preview.innerHTML = '<small class="text-muted">Fără imagine</small>';
+                }
 
                 const modal = new bootstrap.Modal(document.getElementById('pavilionModal'));
                 modal.show();
@@ -1507,11 +1811,39 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         async function savePavilion() {
             const pavilionId = document.getElementById('pavilionId').value;
             const isNew = !pavilionId;
+            const imageFile = document.getElementById('pavilionImageFile').files[0];
+
+            let flagImagePath = document.getElementById('pavilionImage').value.trim();
+
+            // Dacă s-a selectat un fișier nou, încarcă-l mai întâi
+            if (imageFile) {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('type', 'pavilions');
+
+                try {
+                    const uploadResponse = await fetch('api/upload_image.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const uploadResult = await uploadResponse.json();
+
+                    if (uploadResult.error) {
+                        alert('Eroare la încărcare imagine: ' + uploadResult.error);
+                        return;
+                    }
+
+                    flagImagePath = uploadResult.url;
+                } catch (error) {
+                    alert('Eroare la încărcare imagine: ' + error.message);
+                    return;
+                }
+            }
 
             const data = {
                 name: document.getElementById('pavilionName').value.trim(),
                 country_name: document.getElementById('pavilionCountry').value.trim(),
-                flag_image: document.getElementById('pavilionImage').value.trim()
+                flag_image: flagImagePath
             };
 
             if (!data.name) {
@@ -1536,6 +1868,7 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 }
 
                 bootstrap.Modal.getInstance(document.getElementById('pavilionModal')).hide();
+                document.getElementById('pavilionImageFile').value = ''; // Reset file input
                 loadPavilions();
                 alert(isNew ? 'Pavilion creat cu succes!' : 'Pavilion actualizat cu succes!');
 
@@ -1565,14 +1898,35 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         }
 
         // =============================================
-        // TIPURI CONTAINERE MANAGEMENT
+        // SHIPS (NAVE) MANAGEMENT
         // =============================================
-        async function loadContainerTypes() {
-            const container = document.getElementById('container-types-table-container');
+        let shipSearchTimeout = null;
+
+        function debounceShipSearch() {
+            clearTimeout(shipSearchTimeout);
+            shipSearchTimeout = setTimeout(() => loadShips(), 300);
+        }
+
+        function resetShipFilters() {
+            document.getElementById('filterShipImage').value = '';
+            document.getElementById('searchShip').value = '';
+            loadShips();
+        }
+
+        async function loadShips() {
+            const container = document.getElementById('ships-table-container');
             container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
 
+            // Construiește URL cu parametri de filtrare
+            const imageFilter = document.getElementById('filterShipImage')?.value || '';
+            const search = document.getElementById('searchShip')?.value || '';
+
+            let url = 'api/ships.php?';
+            if (imageFilter) url += `has_image=${encodeURIComponent(imageFilter)}&`;
+            if (search) url += `search=${encodeURIComponent(search)}&`;
+
             try {
-                const response = await fetch('api/container_types.php');
+                const response = await fetch(url);
                 const result = await response.json();
 
                 if (result.error) {
@@ -1580,10 +1934,10 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     return;
                 }
 
-                const types = result.data || [];
+                const ships = result.data || [];
 
-                if (types.length === 0) {
-                    container.innerHTML = '<div class="alert alert-info">Nu există tipuri de containere înregistrate.</div>';
+                if (ships.length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">Nu există nave înregistrate.</div>';
                     return;
                 }
 
@@ -1594,9 +1948,252 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                                 <tr>
                                     <th>ID</th>
                                     <th>Imagine</th>
+                                    <th>Nume Navă</th>
+                                    <th>Nr. Înreg.</th>
+                                    <th>Acțiuni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                ships.forEach(s => {
+                    const shipImg = s.image
+                        ? `<img src="${escapeHtml(s.image)}" width="60" height="40" style="object-fit: cover; border-radius: 4px;">`
+                        : '<span class="text-muted">-</span>';
+
+                    html += `
+                        <tr>
+                            <td>${s.id}</td>
+                            <td>${shipImg}</td>
+                            <td><strong>${escapeHtml(s.name)}</strong></td>
+                            <td><span class="badge bg-info">${s.entries_count || 0}</span></td>
+                            <td class="table-actions">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editShip(${s.id})" title="Editează">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteShip(${s.id}, '${escapeHtml(s.name)}')" title="Șterge">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="alert alert-danger">Eroare: ${error.message}</div>`;
+            }
+        }
+
+        function showShipModal() {
+            const modal = new bootstrap.Modal(document.getElementById('shipModal'));
+            document.getElementById('shipForm').reset();
+            document.getElementById('shipId').value = '';
+            document.getElementById('shipImage').value = '';
+            document.getElementById('shipImagePreview').innerHTML = '';
+            document.getElementById('shipModalTitle').textContent = 'Navă Nouă';
+            modal.show();
+        }
+
+        async function editShip(shipId) {
+            try {
+                const response = await fetch(`api/ships.php?id=${shipId}`);
+                const s = await response.json();
+
+                if (s.error) {
+                    alert('Eroare: ' + s.error);
+                    return;
+                }
+
+                document.getElementById('shipId').value = s.id;
+                document.getElementById('shipName').value = s.name || '';
+                document.getElementById('shipImage').value = s.image || '';
+                document.getElementById('shipImageFile').value = ''; // Reset file input
+                document.getElementById('shipModalTitle').textContent = 'Editare Navă';
+
+                // Afișează preview dacă există imagine
+                const preview = document.getElementById('shipImagePreview');
+                if (s.image) {
+                    preview.innerHTML = `<img src="${s.image}" style="max-width: 100px; max-height: 60px; border: 1px solid #ddd; border-radius: 4px;" alt="Preview">
+                                         <small class="d-block text-muted">Imagine actuală</small>`;
+                } else {
+                    preview.innerHTML = '<small class="text-muted">Fără imagine</small>';
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('shipModal'));
+                modal.show();
+
+            } catch (error) {
+                alert('Eroare: ' + error.message);
+            }
+        }
+
+        async function saveShip() {
+            const shipId = document.getElementById('shipId').value;
+            const isNew = !shipId;
+            const imageFile = document.getElementById('shipImageFile').files[0];
+
+            let imagePath = document.getElementById('shipImage').value.trim();
+
+            // Dacă s-a selectat un fișier nou, încarcă-l mai întâi
+            if (imageFile) {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('type', 'ships');
+
+                try {
+                    const uploadResponse = await fetch('api/upload_image.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const uploadResult = await uploadResponse.json();
+
+                    if (uploadResult.error) {
+                        alert('Eroare la încărcare imagine: ' + uploadResult.error);
+                        return;
+                    }
+
+                    imagePath = uploadResult.url;
+                } catch (error) {
+                    alert('Eroare la încărcare imagine: ' + error.message);
+                    return;
+                }
+            }
+
+            const data = {
+                name: document.getElementById('shipName').value.trim(),
+                image: imagePath
+            };
+
+            if (!data.name) {
+                alert('Numele navei este obligatoriu!');
+                return;
+            }
+
+            try {
+                let response;
+                if (isNew) {
+                    response = await fetch('api/ships.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    data.id = shipId;
+                    response = await fetch('api/ships.php', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                }
+
+                const result = await response.json();
+
+                if (result.error) {
+                    alert('Eroare: ' + result.error);
+                    return;
+                }
+
+                // Închide modalul și reîncarcă lista
+                bootstrap.Modal.getInstance(document.getElementById('shipModal')).hide();
+                loadShips();
+                alert(isNew ? 'Navă adăugată cu succes!' : 'Navă actualizată cu succes!');
+
+            } catch (error) {
+                alert('Eroare: ' + error.message);
+            }
+        }
+
+        async function deleteShip(shipId, name) {
+            if (!confirm(`Sigur ștergi nava "${name}"?`)) return;
+
+            try {
+                const response = await fetch(`api/ships.php?id=${shipId}`, { method: 'DELETE' });
+                const result = await response.json();
+
+                if (result.error) {
+                    alert('Eroare: ' + result.error);
+                    return;
+                }
+
+                loadShips();
+                alert('Navă ștearsă cu succes!');
+
+            } catch (error) {
+                alert('Eroare: ' + error.message);
+            }
+        }
+
+        // =============================================
+        // TIPURI CONTAINERE MANAGEMENT
+        // =============================================
+        let containerSearchTimeout = null;
+
+        function debounceContainerSearch() {
+            clearTimeout(containerSearchTimeout);
+            containerSearchTimeout = setTimeout(() => loadContainerTypes(), 300);
+        }
+
+        function resetContainerFilters() {
+            document.getElementById('filterTipContainer').value = '';
+            document.getElementById('filterContainerImage').value = '';
+            document.getElementById('searchContainerType').value = '';
+            loadContainerTypes();
+        }
+
+        async function loadContainerTypes() {
+            const container = document.getElementById('container-types-table-container');
+            container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+
+            // Construiește URL cu parametri de filtrare
+            const tipFilter = document.getElementById('filterTipContainer').value;
+            const imageFilter = document.getElementById('filterContainerImage').value;
+            const search = document.getElementById('searchContainerType').value;
+
+            let url = 'api/container_types.php?';
+            if (tipFilter) url += `tip_container=${encodeURIComponent(tipFilter)}&`;
+            if (imageFilter) url += `has_image=${encodeURIComponent(imageFilter)}&`;
+            if (search) url += `search=${encodeURIComponent(search)}&`;
+
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.error) {
+                    container.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+                    return;
+                }
+
+                const types = result.data || [];
+
+                // Populează dropdown-ul de filtrare (doar prima dată sau când e gol)
+                const filterSelect = document.getElementById('filterTipContainer');
+                if (filterSelect.options.length <= 1 && result.tipuri) {
+                    result.tipuri.forEach(tip => {
+                        const opt = document.createElement('option');
+                        opt.value = tip;
+                        opt.textContent = tip;
+                        filterSelect.appendChild(opt);
+                    });
+                }
+
+                if (types.length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">Nu există tipuri de containere care să corespundă filtrelor.</div>';
+                    return;
+                }
+
+                let html = `
+                    <p class="text-muted mb-2">Total: ${types.length} tipuri de containere</p>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Imagine</th>
                                     <th>Model Container</th>
                                     <th>Tip Container</th>
-                                    <th>Prefix</th>
                                     <th>Nr. Înregistrări</th>
                                     <th>Acțiuni</th>
                                 </tr>
@@ -1605,23 +2202,22 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 `;
 
                 types.forEach(t => {
-                    const img = t.image
-                        ? `<img src="${escapeHtml(t.image)}" width="60" height="40" style="object-fit: cover; border-radius: 4px;">`
+                    const img = t.imagine
+                        ? `<img src="${escapeHtml(t.imagine)}" width="60" height="40" style="object-fit: cover; border-radius: 4px;">`
                         : '<span class="text-muted">-</span>';
 
                     html += `
                         <tr>
                             <td>${t.id}</td>
                             <td>${img}</td>
-                            <td><strong>${escapeHtml(t.model_code)}</strong></td>
-                            <td>${escapeHtml(t.type_code || '-')}</td>
-                            <td>${escapeHtml(t.prefix || '-')}</td>
+                            <td><strong>${escapeHtml(t.model_container || '-')}</strong></td>
+                            <td><span class="badge bg-secondary">${escapeHtml(t.tip_container || '-')}</span></td>
                             <td><span class="badge bg-info">${t.entries_count || 0}</span></td>
                             <td class="table-actions">
                                 <button class="btn btn-sm btn-outline-primary" onclick="editContainerType(${t.id})" title="Editează">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteContainerType(${t.id}, '${escapeHtml(t.model_code)}')" title="Șterge">
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteContainerType(${t.id}, '${escapeHtml(t.model_container)}')" title="Șterge">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -1641,6 +2237,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             const modal = new bootstrap.Modal(document.getElementById('containerTypeModal'));
             document.getElementById('containerTypeForm').reset();
             document.getElementById('containerTypeId').value = '';
+            document.getElementById('containerImagine').value = '';
+            document.getElementById('containerImaginePreview').innerHTML = '';
             document.getElementById('containerTypeModalTitle').textContent = 'Tip Container Nou';
             modal.show();
         }
@@ -1656,11 +2254,17 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 }
 
                 document.getElementById('containerTypeId').value = t.id;
-                document.getElementById('containerModelCode').value = t.model_code || '';
-                document.getElementById('containerTypeCode').value = t.type_code || '';
-                document.getElementById('containerPrefix').value = t.prefix || '';
-                document.getElementById('containerDescription').value = t.description || '';
-                document.getElementById('containerImage').value = t.image || '';
+                document.getElementById('containerModelContainer').value = t.model_container || '';
+                document.getElementById('containerTipContainer').value = t.tip_container || '';
+                document.getElementById('containerDescriere').value = t.descriere || '';
+                document.getElementById('containerImagine').value = t.imagine || '';
+                // Afișează imaginea existentă
+                const previewDiv = document.getElementById('containerImaginePreview');
+                if (t.imagine) {
+                    previewDiv.innerHTML = `<img src="${escapeHtml(t.imagine)}" width="100" style="border-radius: 4px;">`;
+                } else {
+                    previewDiv.innerHTML = '';
+                }
                 document.getElementById('containerTypeModalTitle').textContent = 'Editare Tip Container';
 
                 const modal = new bootstrap.Modal(document.getElementById('containerTypeModal'));
@@ -1675,15 +2279,42 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             const typeId = document.getElementById('containerTypeId').value;
             const isNew = !typeId;
 
+            // Verifică dacă trebuie să uploadăm o imagine
+            const fileInput = document.getElementById('containerImagineFile');
+            let imaginePath = document.getElementById('containerImagine').value;
+
+            if (fileInput.files.length > 0) {
+                // Upload imaginea mai întâi
+                const formData = new FormData();
+                formData.append('image', fileInput.files[0]);
+                formData.append('type', 'containers');
+
+                try {
+                    const uploadResponse = await fetch('api/upload_image.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const uploadResult = await uploadResponse.json();
+                    if (uploadResult.success) {
+                        imaginePath = uploadResult.path;
+                    } else {
+                        alert('Eroare la încărcare imagine: ' + uploadResult.error);
+                        return;
+                    }
+                } catch (e) {
+                    alert('Eroare la încărcare imagine: ' + e.message);
+                    return;
+                }
+            }
+
             const data = {
-                model_code: document.getElementById('containerModelCode').value.trim(),
-                type_code: document.getElementById('containerTypeCode').value.trim(),
-                prefix: document.getElementById('containerPrefix').value.trim(),
-                description: document.getElementById('containerDescription').value.trim(),
-                image: document.getElementById('containerImage').value.trim()
+                model_container: document.getElementById('containerModelContainer').value.trim(),
+                tip_container: document.getElementById('containerTipContainer').value.trim(),
+                descriere: document.getElementById('containerDescriere').value.trim(),
+                imagine: imaginePath
             };
 
-            if (!data.model_code) {
+            if (!data.model_container) {
                 alert('Model container este obligatoriu!');
                 return;
             }
@@ -2114,6 +2745,276 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         }
 
         // =============================================
+        // IMPORT EXCEL
+        // =============================================
+        async function loadImportForm() {
+            const container = document.getElementById('import-form-container');
+
+            // Încarcă template-urile disponibile
+            let templates = [];
+            try {
+                const response = await fetch('api/import_templates.php');
+                const result = await response.json();
+                templates = result.data || [];
+            } catch (e) {}
+
+            let templateOptions = '<option value="">-- Selectează template --</option>';
+            templates.forEach(t => {
+                templateOptions += `<option value="${t.id}">${escapeHtml(t.name)}</option>`;
+            });
+
+            container.innerHTML = `
+                <div class="row">
+                    <!-- Import Standard -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-file-earmark-excel"></i> Import Standard</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted">Importă date folosind formatul Excel predefinit.</p>
+                                <p class="small">Coloane așteptate: Număr Manifest, Container, Tip Container, Greutate, Descriere Marfă, etc.</p>
+
+                                <form id="standardImportForm" enctype="multipart/form-data">
+                                    <div class="mb-3">
+                                        <label class="form-label">Fișier Excel *</label>
+                                        <input type="file" class="form-control" name="excel_file" accept=".xls,.xlsx" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Rând de început</label>
+                                        <input type="number" class="form-control" name="start_row" value="2" min="1">
+                                        <small class="text-muted">Primul rând cu date (nu header)</small>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-upload"></i> Importă Standard
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Import din Template -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0"><i class="bi bi-file-earmark-ruled"></i> Import din Template</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted">Importă folosind un template personalizat cu mapare de coloane.</p>
+
+                                <form id="templateImportForm" enctype="multipart/form-data">
+                                    <div class="mb-3">
+                                        <label class="form-label">Selectează Template *</label>
+                                        <select class="form-select" name="template_id" id="importTemplateSelect" required>
+                                            ${templateOptions}
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Fișier Excel *</label>
+                                        <input type="file" class="form-control" name="excel_file" accept=".xls,.xlsx" required>
+                                    </div>
+
+                                    <hr class="my-3">
+                                    <p class="small text-muted mb-2"><strong>Date suplimentare (opțional - suprascriu valorile din Excel):</strong></p>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label small">Număr Manifest</label>
+                                            <input type="text" class="form-control form-control-sm" name="override_manifest" placeholder="ex: 156">
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label small">Număr Permis</label>
+                                            <input type="text" class="form-control form-control-sm" name="override_permis" placeholder="ex: P12345">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label small">Cerere Operațiune</label>
+                                            <input type="text" class="form-control form-control-sm" name="override_cerere" placeholder="ex: CO123">
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label small">Nume Navă</label>
+                                            <input type="text" class="form-control form-control-sm" name="override_nava" placeholder="ex: MSC GIANNA">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label small">Pavilion</label>
+                                            <input type="text" class="form-control form-control-sm" name="override_pavilion" placeholder="ex: PA">
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label small">Linie Maritimă</label>
+                                            <input type="text" class="form-control form-control-sm" name="override_linie" placeholder="ex: MSC">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small">Data Înregistrare</label>
+                                        <input type="date" class="form-control form-control-sm" name="override_data">
+                                    </div>
+
+                                    <div class="mb-3 p-2 bg-light rounded">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="allow_update" id="allowUpdate" value="1">
+                                            <label class="form-check-label" for="allowUpdate">
+                                                <strong>Permite actualizarea duplicatelor</strong>
+                                            </label>
+                                        </div>
+                                        <small class="text-muted d-block mt-1">
+                                            Dacă există deja o înregistrare cu același container, număr colete și greutate,
+                                            celelalte câmpuri vor fi actualizate (navă, pavilion, manifest, etc.)
+                                        </small>
+                                    </div>
+
+                                    <div id="templateDetails" class="mb-3" style="display: none;">
+                                        <div class="alert alert-info small mb-0">
+                                            <strong>Configurație template:</strong>
+                                            <div id="templateConfig"></div>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100" ${templates.length === 0 ? 'disabled' : ''}>
+                                        <i class="bi bi-upload"></i> Importă cu Template
+                                    </button>
+                                    ${templates.length === 0 ? '<p class="text-warning small mt-2 mb-0"><i class="bi bi-info-circle"></i> Nu există template-uri. Creează unul din "Gestionare Template-uri Import".</p>' : ''}
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rezultate Import -->
+                <div id="importResults" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Rezultate Import</h5>
+                        </div>
+                        <div class="card-body" id="importResultsBody">
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Event listener pentru afișare detalii template
+            document.getElementById('importTemplateSelect').addEventListener('change', async function() {
+                const templateId = this.value;
+                const detailsDiv = document.getElementById('templateDetails');
+                const configDiv = document.getElementById('templateConfig');
+
+                if (!templateId) {
+                    detailsDiv.style.display = 'none';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`api/import_templates.php?id=${templateId}`);
+                    const template = await response.json();
+
+                    if (template && template.column_mapping) {
+                        let mappingHtml = `<br>Rând început: ${template.start_row}<br>Format: ${template.file_format}<br>Mapări: `;
+                        const mappings = template.column_mapping;
+                        const mappingItems = [];
+                        for (const [field, column] of Object.entries(mappings)) {
+                            if (column) mappingItems.push(`${field} → "${column}"`);
+                        }
+                        mappingHtml += mappingItems.join(', ') || 'Nicio mapare definită';
+                        configDiv.innerHTML = mappingHtml;
+                        detailsDiv.style.display = 'block';
+                    }
+                } catch (e) {
+                    detailsDiv.style.display = 'none';
+                }
+            });
+
+            // Form submit pentru import standard
+            document.getElementById('standardImportForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await performImport(this, 'standard');
+            });
+
+            // Form submit pentru import template
+            document.getElementById('templateImportForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await performImport(this, 'template');
+            });
+        }
+
+        async function performImport(form, type) {
+            // Întreabă dacă a făcut backup înainte de import
+            const hasBackup = confirm(
+                '⚠️ ATENȚIE - BACKUP RECOMANDAT!\n\n' +
+                'Înainte de import, este recomandat să faci un backup al bazei de date.\n\n' +
+                'Ai făcut deja un backup?\n\n' +
+                '• Apasă OK dacă ai făcut backup și vrei să continui importul\n' +
+                '• Apasă Cancel pentru a face un backup întâi (mergi la Backup & Restore)'
+            );
+
+            if (!hasBackup) {
+                showToast('Import anulat. Fă un backup înainte de a continua.', 'warning');
+                return;
+            }
+
+            const formData = new FormData(form);
+            formData.append('import_type', type);
+
+            const resultsDiv = document.getElementById('importResults');
+            const resultsBody = document.getElementById('importResultsBody');
+
+            resultsDiv.style.display = 'block';
+            resultsBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2">Se procesează importul...</p></div>';
+
+            try {
+                const response = await fetch('api/import_excel.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    resultsBody.innerHTML = `<div class="alert alert-danger"><i class="bi bi-x-circle"></i> ${result.error}</div>`;
+                } else if (result.success) {
+                    const hasUpdated = result.updated && result.updated > 0;
+                    resultsBody.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> <strong>Import finalizat cu succes!</strong>
+                        </div>
+                        <div class="row text-center">
+                            <div class="${hasUpdated ? 'col' : 'col-md-3'}">
+                                <h4 class="text-success">${result.imported || 0}</h4>
+                                <small>Înregistrări noi</small>
+                            </div>
+                            ${hasUpdated ? `
+                            <div class="col">
+                                <h4 class="text-primary">${result.updated}</h4>
+                                <small>Actualizate</small>
+                            </div>
+                            ` : ''}
+                            <div class="${hasUpdated ? 'col' : 'col-md-3'}">
+                                <h4 class="text-warning">${result.skipped || 0}</h4>
+                                <small>Sărite (duplicate)</small>
+                            </div>
+                            <div class="${hasUpdated ? 'col' : 'col-md-3'}">
+                                <h4 class="text-danger">${result.errors || 0}</h4>
+                                <small>Erori</small>
+                            </div>
+                            <div class="${hasUpdated ? 'col' : 'col-md-3'}">
+                                <h4 class="text-info">${result.total || 0}</h4>
+                                <small>Total procesate</small>
+                            </div>
+                        </div>
+                        ${result.error_details && result.error_details.length > 0 ? `<div class="mt-3"><strong>Detalii erori:</strong><pre class="bg-light p-2 small">${escapeHtml(result.error_details.join('\\n'))}</pre></div>` : ''}
+                    `;
+
+                    // Reset form
+                    form.reset();
+                } else {
+                    resultsBody.innerHTML = `<div class="alert alert-warning">Răspuns necunoscut de la server</div>`;
+                }
+            } catch (error) {
+                resultsBody.innerHTML = `<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Eroare: ${error.message}</div>`;
+            }
+        }
+
+        // =============================================
         // EXPORT DATE
         // =============================================
         async function loadExportOptions() {
@@ -2122,13 +3023,13 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             // Obține statistici
             let stats = { total_entries: 0, total_manifests: 0 };
             try {
-                const response = await fetch('api/manifests.php');
+                const response = await fetch('api/manifests/list.php?page=1&limit=1000');
                 const result = await response.json();
-                if (result.data) {
-                    stats.total_manifests = result.data.length;
-                    stats.total_entries = result.data.reduce((sum, m) => sum + (m.container_count || 0), 0);
+                if (result.success && result.manifests) {
+                    stats.total_manifests = result.pagination.total;
+                    stats.total_entries = result.manifests.reduce((sum, m) => sum + (parseInt(m.container_count) || 0), 0);
                 }
-            } catch (e) {}
+            } catch (e) { console.log('Stats error:', e); }
 
             container.innerHTML = `
                 <div class="row">
@@ -2138,10 +3039,7 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                                 <h5 class="card-title">Export Toate Datele</h5>
                                 <p class="text-muted">Exportă toate înregistrările din baza de date</p>
                                 <p><strong>${stats.total_entries.toLocaleString()}</strong> înregistrări în <strong>${stats.total_manifests}</strong> manifeste</p>
-                                <button class="btn btn-success" onclick="exportAllData('csv')">
-                                    <i class="bi bi-filetype-csv"></i> Export CSV
-                                </button>
-                                <button class="btn btn-primary" onclick="exportAllData('xlsx')" disabled title="Necesită PhpSpreadsheet">
+                                <button class="btn btn-success" onclick="exportAllData('xls')">
                                     <i class="bi bi-file-earmark-excel"></i> Export Excel
                                 </button>
                             </div>
@@ -2155,8 +3053,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                                 <select id="exportManifestSelect" class="form-select mb-3">
                                     <option value="">Se încarcă...</option>
                                 </select>
-                                <button class="btn btn-success" onclick="exportManifest('csv')">
-                                    <i class="bi bi-filetype-csv"></i> Export CSV
+                                <button class="btn btn-success" onclick="exportManifestFromSelect('xls')">
+                                    <i class="bi bi-file-earmark-excel"></i> Export Excel
                                 </button>
                             </div>
                         </div>
@@ -2164,15 +3062,15 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 </div>
             `;
 
-            // Încarcă lista de manifeste
+            // Încarcă lista de manifeste (folosește list.php care grupează și elimină duplicatele)
             try {
-                const response = await fetch('api/manifests.php');
+                const response = await fetch('api/manifests/list.php?page=1&limit=1000');
                 const result = await response.json();
                 const select = document.getElementById('exportManifestSelect');
 
-                if (result.data && result.data.length > 0) {
+                if (result.manifests && result.manifests.length > 0) {
                     select.innerHTML = '<option value="">-- Selectează Manifest --</option>' +
-                        result.data.map(m => `<option value="${escapeHtml(m.manifest_number)}">${escapeHtml(m.manifest_number)} (${m.container_count} containere)</option>`).join('');
+                        result.manifests.map(m => `<option value="${escapeHtml(m.manifest_number)}">${escapeHtml(m.manifest_number)} (${m.container_count || 0} containere)</option>`).join('');
                 } else {
                     select.innerHTML = '<option value="">Nu există manifeste</option>';
                 }
@@ -2181,19 +3079,19 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             }
         }
 
-        async function exportAllData(format) {
-            alert('Export ' + format.toUpperCase() + ' în curs de dezvoltare.\n\nPentru moment, folosiți Export per Manifest.');
+        function exportAllData(format) {
+            window.open('api/export_all.php?format=' + format, '_blank');
         }
 
-        async function exportManifest(format) {
+        async function exportManifestFromSelect(format) {
             const manifestNumber = document.getElementById('exportManifestSelect').value;
             if (!manifestNumber) {
                 alert('Selectează un manifest!');
                 return;
             }
 
-            // Open in new tab for download
-            window.open(`api/export.php?manifest=${encodeURIComponent(manifestNumber)}&format=${format}`, '_blank');
+            // Open in new tab for download - folosește api/manifests/export.php pentru format Excel frumos
+            window.open(`api/manifests/export.php?manifest_number=${encodeURIComponent(manifestNumber)}`, '_blank');
         }
 
         // =============================================
@@ -2287,6 +3185,174 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
 
             } catch (error) {
                 container.innerHTML = `<div class="alert alert-danger">Eroare: ${error.message}</div>`;
+            }
+        }
+
+        // =============================================
+        // BACKUP & RESTORE
+        // =============================================
+
+        async function loadBackups() {
+            const container = document.getElementById('backups-list');
+            container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+
+            try {
+                const response = await fetch('api/backup.php?action=list');
+                const result = await response.json();
+
+                if (result.error) {
+                    container.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+                    return;
+                }
+
+                const backups = result.data || [];
+
+                if (backups.length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">Nu există backup-uri. Creează primul backup acum!</div>';
+                    return;
+                }
+
+                let html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fișier</th>
+                                    <th>Data</th>
+                                    <th>Dimensiune</th>
+                                    <th>Acțiuni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                backups.forEach(backup => {
+                    html += `
+                        <tr>
+                            <td><i class="bi bi-file-earmark-zip text-primary"></i> ${escapeHtml(backup.filename)}</td>
+                            <td>${backup.created_at}</td>
+                            <td>${backup.size}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="api/backup.php?action=download&filename=${encodeURIComponent(backup.filename)}"
+                                       class="btn btn-outline-primary" title="Descarcă">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                    <button class="btn btn-outline-warning" onclick="restoreBackup('${escapeHtml(backup.filename)}')" title="Restaurează">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="deleteBackup('${escapeHtml(backup.filename)}')" title="Șterge">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="alert alert-danger">Eroare: ${error.message}</div>`;
+            }
+        }
+
+        async function createBackup() {
+            if (!confirm('Vrei să creezi un backup al bazei de date?')) return;
+
+            showLoading('Se creează backup-ul...');
+
+            try {
+                const response = await fetch('api/backup.php?action=create', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                hideLoading();
+
+                if (result.success) {
+                    showToast(`Backup creat: ${result.filename} (${result.size})`, 'success');
+                    loadBackups();
+                } else {
+                    showToast(result.error || 'Eroare la creare backup', 'danger');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Eroare: ' + error.message, 'danger');
+            }
+        }
+
+        async function restoreBackup(filename) {
+            const confirmed = confirm(
+                `⚠️ ATENȚIE!\n\n` +
+                `Ești sigur că vrei să restaurezi baza de date din:\n${filename}\n\n` +
+                `TOATE datele curente vor fi ȘTERSE și înlocuite cu cele din backup!\n\n` +
+                `Această acțiune NU poate fi anulată!`
+            );
+
+            if (!confirmed) return;
+
+            const doubleConfirm = confirm(
+                `Confirmare finală:\n\n` +
+                `Scrie DA în următorul prompt pentru a continua restaurarea.`
+            );
+
+            if (!doubleConfirm) return;
+
+            const userInput = prompt('Scrie "DA" pentru a confirma restaurarea:');
+            if (userInput !== 'DA') {
+                showToast('Restaurare anulată.', 'info');
+                return;
+            }
+
+            showLoading('Se restaurează baza de date...');
+
+            try {
+                const formData = new FormData();
+                formData.append('filename', filename);
+
+                const response = await fetch('api/backup.php?action=restore', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                hideLoading();
+
+                if (result.success) {
+                    showToast('Baza de date a fost restaurată cu succes!', 'success');
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showToast(result.error || 'Eroare la restaurare', 'danger');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Eroare: ' + error.message, 'danger');
+            }
+        }
+
+        async function deleteBackup(filename) {
+            if (!confirm(`Ești sigur că vrei să ștergi backup-ul:\n${filename}?`)) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('filename', filename);
+
+                const response = await fetch('api/backup.php?action=delete', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Backup șters!', 'success');
+                    loadBackups();
+                } else {
+                    showToast(result.error || 'Eroare la ștergere', 'danger');
+                }
+            } catch (error) {
+                showToast('Eroare: ' + error.message, 'danger');
             }
         }
     </script>
