@@ -1,51 +1,41 @@
 <?php
-session_start();
-$_SESSION['user_id'] = 1; // Simulează autentificarea
-
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-echo "<h1>Structura Tabelelor</h1>";
-
 require_once 'config/database.php';
+
+echo "<pre>";
+echo "=== CONTAINER_TYPES TABLE STRUCTURE ===\n\n";
 
 $conn = getDbConnection();
 
-echo "<h2>1. Coloane din tabela 'manifests':</h2>";
-$result = $conn->query("DESCRIBE manifests");
-echo "<table border='1' cellpadding='5'>";
-echo "<tr><th>Field</th><th>Type</th><th>Null</th><th>Key</th><th>Default</th></tr>";
+// Show table structure
+$result = $conn->query("DESCRIBE container_types");
+echo "Columns:\n";
 while ($row = $result->fetch_assoc()) {
-    echo "<tr>";
-    echo "<td>" . htmlspecialchars($row['Field']) . "</td>";
-    echo "<td>" . htmlspecialchars($row['Type']) . "</td>";
-    echo "<td>" . htmlspecialchars($row['Null']) . "</td>";
-    echo "<td>" . htmlspecialchars($row['Key']) . "</td>";
-    echo "<td>" . htmlspecialchars($row['Default'] ?? 'NULL') . "</td>";
-    echo "</tr>";
+    echo "  {$row['Field']} - {$row['Type']} - {$row['Null']} - {$row['Key']}\n";
 }
-echo "</table>";
 
-echo "<h2>2. Coloane din tabela 'manifest_entries':</h2>";
-$result = $conn->query("DESCRIBE manifest_entries");
-echo "<table border='1' cellpadding='5'>";
-echo "<tr><th>Field</th><th>Type</th><th>Null</th><th>Key</th><th>Default</th></tr>";
-while ($row = $result->fetch_assoc()) {
-    echo "<tr>";
-    echo "<td>" . htmlspecialchars($row['Field']) . "</td>";
-    echo "<td>" . htmlspecialchars($row['Type']) . "</td>";
-    echo "<td>" . htmlspecialchars($row['Null']) . "</td>";
-    echo "<td>" . htmlspecialchars($row['Key']) . "</td>";
-    echo "<td>" . htmlspecialchars($row['Default'] ?? 'NULL') . "</td>";
-    echo "</tr>";
-}
-echo "</table>";
-
-echo "<h2>3. Sample data from manifest_entries (1 rând):</h2>";
-$result = $conn->query("SELECT * FROM manifest_entries LIMIT 1");
-if ($row = $result->fetch_assoc()) {
-    echo "<pre>";
+// Show first 5 rows
+echo "\n=== SAMPLE DATA (first 5) ===\n";
+$data = $conn->query("SELECT * FROM container_types LIMIT 5");
+while ($row = $data->fetch_assoc()) {
     print_r($row);
-    echo "</pre>";
 }
+
+// Check types in manifest not in container_types (using correct column name)
+echo "\n=== TYPES IN MANIFEST 159 ===\n";
+$types = $conn->query("
+    SELECT DISTINCT container_type, COUNT(*) as cnt
+    FROM manifest_entries
+    WHERE numar_manifest = '159'
+    GROUP BY container_type
+    ORDER BY cnt DESC
+");
+while ($row = $types->fetch_assoc()) {
+    echo "{$row['container_type']}: {$row['cnt']}\n";
+}
+
+$conn->close();
+echo "</pre>";
 ?>

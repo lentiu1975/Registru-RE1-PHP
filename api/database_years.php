@@ -17,13 +17,31 @@ $method = $_SERVER['REQUEST_METHOD'];
 switch ($method) {
     case 'GET':
         // Include numărul de containere pentru fiecare an
-        $years = dbFetchAll("
-            SELECT dy.*,
-                   (SELECT COUNT(*) FROM manifest_entries WHERE database_year_id = dy.id) as container_count,
-                   (SELECT COUNT(*) FROM manifests WHERE database_year_id = dy.id) as manifest_count
-            FROM database_years dy
-            ORDER BY dy.year DESC
-        ");
+        // Verifică dacă coloana database_year_id există în manifest_entries
+        $conn = getDbConnection();
+        $hasYearColumn = false;
+        $checkCol = $conn->query("SHOW COLUMNS FROM manifest_entries LIKE 'database_year_id'");
+        if ($checkCol && $checkCol->num_rows > 0) {
+            $hasYearColumn = true;
+        }
+        $conn->close();
+
+        if ($hasYearColumn) {
+            $years = dbFetchAll("
+                SELECT dy.*,
+                       (SELECT COUNT(*) FROM manifest_entries WHERE database_year_id = dy.id) as container_count,
+                       (SELECT COUNT(DISTINCT manifest_number) FROM manifests WHERE database_year_id = dy.id) as manifest_count
+                FROM database_years dy
+                ORDER BY dy.year DESC
+            ");
+        } else {
+            // Fallback: doar listează anii fără contoare
+            $years = dbFetchAll("
+                SELECT dy.*, 0 as container_count, 0 as manifest_count
+                FROM database_years dy
+                ORDER BY dy.year DESC
+            ");
+        }
         jsonResponse(['data' => $years]);
         break;
 
@@ -40,10 +58,14 @@ switch ($method) {
             jsonResponse(['error' => 'Anul există deja'], 409);
         }
 
-        dbQuery("INSERT INTO database_years (year, is_active) VALUES (?, 0)", [$data['year']]);
-
+        // Insert și obține ID-ul nou
         $conn = getDbConnection();
+        $stmt = $conn->prepare("INSERT INTO database_years (year, is_active) VALUES (?, 0)");
+        $yearVal = $data['year'];
+        $stmt->bind_param("s", $yearVal);
+        $stmt->execute();
         $id = $conn->insert_id;
+        $stmt->close();
         $conn->close();
 
         $year = dbFetchOne("SELECT * FROM database_years WHERE id = ?", [$id]);

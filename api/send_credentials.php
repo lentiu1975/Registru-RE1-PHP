@@ -98,8 +98,6 @@ Parola: {$password}
 
 Link acces: http://vamactasud.lentiu.ro/login.php
 
-Vă recomandăm să schimbați parola după prima autentificare.
-
 Cu stimă,
 Echipa Registru Import RE1
 ";

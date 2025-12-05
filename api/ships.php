@@ -1,7 +1,7 @@
 <?php
 /**
  * API pentru gestionare nave
- * Coloane: id, name, image, created_at
+ * Coloane: id, name, pavilion_id, image, created_at
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -20,7 +20,12 @@ switch ($method) {
         $id = $_GET['id'] ?? null;
 
         if ($id) {
-            $ship = dbFetchOne("SELECT * FROM ships WHERE id = ?", [$id]);
+            $ship = dbFetchOne("
+                SELECT s.*, p.name as pavilion_name, p.flag_image as pavilion_flag
+                FROM ships s
+                LEFT JOIN pavilions p ON s.pavilion_id = p.id
+                WHERE s.id = ?
+            ", [$id]);
             jsonResponse($ship);
         } else {
             // Parametri pentru filtrare și căutare
@@ -28,11 +33,12 @@ switch ($method) {
             $search = $_GET['search'] ?? '';
 
             // Query cu numărare înregistrări din manifest_entries pe baza ship_name
-            $sql = "SELECT s.*,
+            $sql = "SELECT s.*, p.name as pavilion_name, p.flag_image as pavilion_flag,
                     (SELECT COUNT(DISTINCT me.id)
                      FROM manifest_entries me
                      WHERE me.ship_name = s.name) as entries_count
                     FROM ships s
+                    LEFT JOIN pavilions p ON s.pavilion_id = p.id
                     WHERE 1=1";
 
             $params = [];
@@ -65,8 +71,9 @@ switch ($method) {
             jsonResponse(['error' => 'Numele navei este obligatoriu'], 400);
         }
 
-        dbQuery("INSERT INTO ships (name, image) VALUES (?, ?)", [
+        dbQuery("INSERT INTO ships (name, pavilion_id, image) VALUES (?, ?, ?)", [
             $data['name'],
+            $data['pavilion_id'] ?? null,
             $data['image'] ?? null
         ]);
 
@@ -91,6 +98,10 @@ switch ($method) {
         if (isset($data['name'])) {
             $updates[] = "name = ?";
             $params[] = $data['name'];
+        }
+        if (array_key_exists('pavilion_id', $data)) {
+            $updates[] = "pavilion_id = ?";
+            $params[] = $data['pavilion_id'] ?: null;
         }
         if (isset($data['image'])) {
             $updates[] = "image = ?";

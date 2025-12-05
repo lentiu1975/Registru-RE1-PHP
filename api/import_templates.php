@@ -4,6 +4,13 @@
  * Structura tabelei: id, name, description, column_mappings (JSON), is_default, created_at, updated_at
  */
 
+// Disable error display in output (would break JSON)
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
+// Log errors to file instead
+ini_set('log_errors', 1);
+
 header('Content-Type: application/json; charset=utf-8');
 session_start();
 require_once '../config/database.php';
@@ -53,24 +60,24 @@ switch ($method) {
 
         $columnMappings = isset($data['column_mapping']) ? json_encode($data['column_mapping']) : '{}';
         $startRow = intval($data['start_row'] ?? 2);
+        $fileFormat = $data['file_format'] ?? 'xlsx';
 
-        dbQuery("INSERT INTO import_templates (name, description, column_mappings, start_row, is_default) VALUES (?, ?, ?, ?, ?)", [
-            $data['name'],
-            $data['description'] ?? null,
-            $columnMappings,
-            $startRow,
-            $data['is_default'] ?? 0
-        ]);
-
+        // Use direct connection to get insert_id
         $conn = getDbConnection();
+        $stmt = $conn->prepare("INSERT INTO import_templates (name, description, column_mappings, start_row, file_format, is_default) VALUES (?, ?, ?, ?, ?, ?)");
+        $isDefault = $data['is_default'] ?? 0;
+        $description = $data['description'] ?? null;
+        $stmt->bind_param('sssisi', $data['name'], $description, $columnMappings, $startRow, $fileFormat, $isDefault);
+        $stmt->execute();
         $id = $conn->insert_id;
+        $stmt->close();
         $conn->close();
 
         $template = dbFetchOne("SELECT * FROM import_templates WHERE id = ?", [$id]);
         if ($template && isset($template['column_mappings'])) {
             $template['column_mapping'] = json_decode($template['column_mappings'], true) ?: [];
         }
-        jsonResponse($template, 201);
+        jsonResponse($template ?: ['success' => true, 'id' => $id], 201);
         break;
 
     case 'PUT':
@@ -103,6 +110,10 @@ switch ($method) {
             $updates[] = "start_row = ?";
             $params[] = intval($data['start_row']);
         }
+        if (isset($data['file_format'])) {
+            $updates[] = "file_format = ?";
+            $params[] = $data['file_format'];
+        }
 
         if (!empty($updates)) {
             $updates[] = "updated_at = NOW()";
@@ -114,7 +125,7 @@ switch ($method) {
         if ($template && isset($template['column_mappings'])) {
             $template['column_mapping'] = json_decode($template['column_mappings'], true) ?: [];
         }
-        jsonResponse($template);
+        jsonResponse($template ?: ['success' => true]);
         break;
 
     case 'DELETE':

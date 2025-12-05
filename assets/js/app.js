@@ -113,8 +113,8 @@ document.addEventListener('DOMContentLoaded', function() {
         html += '<div class="container-section">';
         html += '<div class="container-title">' + containerNumber + '</div>';
 
-        const containerImage = result.container_image || '/assets/images/container_default.png';
-        html += '<img src="' + containerImage + '" alt="Container" class="container-image-large" onerror="this.src=\'/assets/images/container_default.png\'">';
+        const containerImage = result.container_image || 'assets/images/container_model.png';
+        html += '<img src="' + containerImage + '" alt="Container" class="container-image-large" onerror="this.src=\'assets/images/container_model.png\'">';
 
         html += '</div></div>';
 

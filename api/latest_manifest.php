@@ -1,6 +1,6 @@
 <?php
 /**
- * API pentru ultimul manifest actualizat
+ * API pentru ultimele manifeste actualizate
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -12,33 +12,34 @@ require_once '../includes/functions.php';
 
 // Verifică autentificare
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['manifest_number' => 'N/A', 'ship_name' => 'N/A', 'arrival_date' => null]);
+    echo json_encode(['manifests' => []]);
     exit;
 }
 
-// Query pentru ultimul manifest (cel mai mare număr de manifest)
-$sql = "SELECT m.manifest_number, m.arrival_date, me.ship_name
+// Query pentru ultimele 3 manifeste (cele mai mari numere de manifest)
+$sql = "SELECT DISTINCT m.manifest_number, m.arrival_date,
+        (SELECT me.ship_name FROM manifest_entries me WHERE me.numar_manifest = m.manifest_number AND me.ship_name IS NOT NULL AND me.ship_name != '' LIMIT 1) as ship_name
         FROM manifests m
-        LEFT JOIN manifest_entries me ON m.id = me.manifest_id
         WHERE m.manifest_number IS NOT NULL
           AND m.manifest_number != ''
-          AND me.ship_name IS NOT NULL
-          AND me.ship_name != 'N/A'
         ORDER BY CAST(m.manifest_number AS UNSIGNED) DESC
-        LIMIT 1";
+        LIMIT 3";
 
-$result = dbFetchOne($sql);
+$results = dbFetchAll($sql);
 
-if ($result) {
-    jsonResponse([
-        'manifest_number' => $result['manifest_number'],
-        'ship_name' => $result['ship_name'],
-        'arrival_date' => $result['arrival_date']
-    ]);
+if ($results && count($results) > 0) {
+    // Filtrează rezultatele care au ship_name valid
+    $manifests = [];
+    foreach ($results as $row) {
+        if (!empty($row['ship_name'])) {
+            $manifests[] = [
+                'manifest_number' => $row['manifest_number'],
+                'ship_name' => $row['ship_name'],
+                'arrival_date' => $row['arrival_date']
+            ];
+        }
+    }
+    jsonResponse(['manifests' => $manifests]);
 } else {
-    jsonResponse([
-        'manifest_number' => 'N/A',
-        'ship_name' => 'N/A',
-        'arrival_date' => null
-    ]);
+    jsonResponse(['manifests' => []]);
 }

@@ -3,6 +3,11 @@
  * API pentru gestionare pavilioane
  */
 
+// Disable error display in output (would break JSON)
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+ini_set('log_errors', 1);
+
 header('Content-Type: application/json; charset=utf-8');
 session_start();
 require_once '../config/database.php';
@@ -62,21 +67,23 @@ switch ($method) {
         $data = json_decode(file_get_contents('php://input'), true);
 
         if (empty($data['name'])) {
-            jsonResponse(['error' => 'Numele pavilionului este obligatoriu'], 400);
+            jsonResponse(['error' => 'Codul pavilionului este obligatoriu'], 400);
         }
 
-        dbQuery("INSERT INTO pavilions (name, country_name, flag_image) VALUES (?, ?, ?)", [
-            $data['name'],
-            $data['country_name'] ?? null,
-            $data['flag_image'] ?? null
-        ]);
-
+        // Use direct connection to get insert_id
         $conn = getDbConnection();
+        $stmt = $conn->prepare("INSERT INTO pavilions (name, country_name, flag_image) VALUES (?, ?, ?)");
+        $code = strtoupper(trim($data['name'])); // name = cod (ex: TR, PA)
+        $countryName = $data['country_name'] ?? null; // country_name = nume tara (ex: Turcia)
+        $flagImage = $data['flag_image'] ?? null;
+        $stmt->bind_param('sss', $code, $countryName, $flagImage);
+        $stmt->execute();
         $id = $conn->insert_id;
+        $stmt->close();
         $conn->close();
 
         $pavilion = dbFetchOne("SELECT * FROM pavilions WHERE id = ?", [$id]);
-        jsonResponse($pavilion, 201);
+        jsonResponse($pavilion ?: ['success' => true, 'id' => $id], 201);
         break;
 
     case 'PUT':

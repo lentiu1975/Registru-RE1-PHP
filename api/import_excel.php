@@ -159,6 +159,7 @@ try {
     $skipped = 0;
     $errors = 0;
     $errorDetails = [];
+    $debugLog = [];
     $total = 0;
 
     // Obține anul activ pentru import
@@ -202,24 +203,39 @@ try {
         // Determină valorile efective pentru manifest (cu override)
         $effectiveManifest = !empty($overrideManifest) ? $overrideManifest : ($data['numar_manifest'] ?? '');
 
-        // Validare minimă - trebuie să avem container sau manifest
-        if (empty($data['container']) && empty($effectiveManifest)) {
+        // Curăță containerul - elimină spațiile (ex: "UACU  4770120" -> "UACU4770120")
+        $containerVal = preg_replace('/\s+/', '', $data['container'] ?? '');
+        $coleteVal = floatval($data['numar_colete'] ?? 0);
+        $greutateVal = floatval(str_replace(',', '.', $data['greutate_bruta'] ?? 0));
+
+        // DEBUG: Log toate rândurile sărite
+        $debugLog[] = "Row $rowNum: container='$containerVal' (len=" . strlen($containerVal) . "), colete=$coleteVal, greutate=$greutateVal";
+
+        // Skip dacă containerul e gol sau prea scurt (minim 4 caractere)
+        if (empty($containerVal) || strlen($containerVal) < 4) {
             $skipped++;
+            $debugLog[] = "  -> SKIP: container invalid (empty or len<4)";
             continue;
         }
 
-        // Verifică duplicate (după container și manifest efectiv)
+        // Skip dacă colete=0 SAU greutate=0 (ambele trebuie să aibă valori > 0)
+        if ($coleteVal <= 0 || $greutateVal <= 0) {
+            $skipped++;
+            $debugLog[] = "  -> SKIP: colete=$coleteVal, greutate=$greutateVal (one is 0)";
+            continue;
+        }
+
+        $debugLog[] = "  -> OK: will import";
+
+        // Verifică duplicate DOAR dacă allowUpdate e activ (pentru a actualiza intrări existente)
+        // Containerul poate apărea de mai multe ori în același manifest, deci NU sărim duplicatele
         $existingEntry = null;
-        if (!empty($data['container']) && !empty($effectiveManifest)) {
+        if ($allowUpdate && !empty($data['container']) && !empty($effectiveManifest)) {
+            // Caută doar pentru UPDATE, nu pentru skip
             $existingEntry = dbFetchOne(
                 "SELECT id, packages, weight FROM manifest_entries WHERE container_number = ? AND numar_manifest = ?",
                 [$data['container'], $effectiveManifest]
             );
-            if ($existingEntry && !$allowUpdate) {
-                // Duplicate găsit și nu e permisă actualizarea
-                $skipped++;
-                continue;
-            }
         }
 
         // Convertește tip operațiune: IMP -> I, TSH -> T
@@ -236,7 +252,7 @@ try {
         // Pregătește datele pentru insert
         $insertData = [
             'numar_manifest' => $data['numar_manifest'] ?? '',
-            'container_number' => $data['container'] ?? '',
+            'container_number' => $containerVal,  // Folosește valoarea curățată (fără spații)
             'container_type' => $data['tip_container'] ?? '',
             'packages' => intval($data['numar_colete'] ?? 0),
             'weight' => floatval(str_replace(',', '.', $data['greutate_bruta'] ?? 0)),
@@ -287,6 +303,32 @@ try {
         if (!empty($insertData['container_number']) && !empty($insertData['container_type'])) {
             $prefix = substr($insertData['container_number'], 0, 4);
             $modelContainer = $prefix . $insertData['container_type'];
+
+            // Auto-creează tipul în container_types dacă nu există
+            $tipContainer = $insertData['container_type'];
+            $checkType = $conn->prepare("SELECT id FROM container_types WHERE model_container = ?");
+            $checkType->bind_param("s", $modelContainer);
+            $checkType->execute();
+            $typeResult = $checkType->get_result();
+
+            if ($typeResult->num_rows == 0) {
+                // Determină descrierea bazată pe dimensiune
+                $sizePrefix = substr($tipContainer, 0, 2);
+                if ($sizePrefix == '22') {
+                    $size = '20ft';
+                } elseif ($sizePrefix == '42' || $sizePrefix == '45' || $sizePrefix == 'L5') {
+                    $size = '40ft';
+                } else {
+                    $size = '';
+                }
+                $descriere = "Container $modelContainer - $size";
+
+                $insertType = $conn->prepare("INSERT INTO container_types (model_container, tip_container, descriere) VALUES (?, ?, ?)");
+                $insertType->bind_param("sss", $modelContainer, $tipContainer, $descriere);
+                $insertType->execute();
+                $insertType->close();
+            }
+            $checkType->close();
         }
 
         // Găsește sau creează manifestul în tabela manifests (pentru foreign key)
@@ -320,6 +362,20 @@ try {
                             $stmtShip->execute();
                             $shipId = $conn->insert_id;
                             $stmtShip->close();
+                        }
+                    }
+
+                    // Găsește sau creează pavilionul
+                    $shipFlag = $insertData['ship_flag'];
+                    if (!empty($shipFlag)) {
+                        $flagCode = strtoupper(trim($shipFlag));
+                        $flagRow = dbFetchOne("SELECT id FROM pavilions WHERE name = ?", [$flagCode]);
+                        if (!$flagRow) {
+                            // Creează pavilion nou (name=cod, country_name=cod inițial, poate fi editat ulterior)
+                            $stmtFlag = $conn->prepare("INSERT INTO pavilions (name, country_name) VALUES (?, ?)");
+                            $stmtFlag->bind_param("ss", $flagCode, $flagCode);
+                            $stmtFlag->execute();
+                            $stmtFlag->close();
                         }
                     }
 
@@ -358,7 +414,7 @@ try {
                 $existingId = $existingEntry['id'];
                 // 17 params: s-s-i-d-s-s-s-s-s-s-s-s-s-s-s-s-i
                 $stmt->bind_param(
-                    "ssidsssssssssssssi",
+                    "ssidssssssssssssi",
                     $insertData['numar_manifest'],
                     $insertData['container_type'],
                     $insertData['packages'],
@@ -452,7 +508,8 @@ try {
         'skipped' => $skipped,
         'errors' => $errors,
         'total' => $total,
-        'error_details' => array_slice($errorDetails, 0, 10) // Primele 10 erori
+        'error_details' => array_slice($errorDetails, 0, 10),
+        'debug_log' => $debugLog // DEBUG: toate rândurile procesate
     ]);
 
 } catch (Exception $e) {

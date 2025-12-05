@@ -2,6 +2,7 @@
 /**
  * SimpleXLS - Parser simplu pentru fișiere XLS (Excel 97-2003)
  * Bazat pe specificația BIFF8
+ * Cu suport complet pentru SST CONTINUE records
  */
 
 class SimpleXLS {
@@ -25,6 +26,10 @@ class SimpleXLS {
             return $instance;
         }
         return false;
+    }
+
+    public static function parseError() {
+        return 'Parse error';
     }
 
     public function rows($sheetIndex = 0) {
@@ -51,20 +56,16 @@ class SimpleXLS {
     }
 
     private function parseContent() {
-        // Verifică semnătura OLE2
         if (substr($this->data, 0, 8) !== "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1") {
             $this->error = 'Not a valid XLS file';
             return false;
         }
 
         try {
-            // Parsează structura OLE2 pentru a găsi Workbook stream
             $workbook = $this->extractWorkbook();
             if ($workbook === false) {
                 return false;
             }
-
-            // Parsează BIFF records
             return $this->parseBIFF($workbook);
         } catch (Exception $e) {
             $this->error = $e->getMessage();
@@ -73,18 +74,12 @@ class SimpleXLS {
     }
 
     private function extractWorkbook() {
-        // Citește header-ul OLE2
         $sectorSize = pow(2, $this->getWord($this->data, 30));
-        $miniSectorSize = pow(2, $this->getWord($this->data, 32));
         $fatSectors = $this->getDWord($this->data, 44);
         $directorySectorStart = $this->getDWord($this->data, 48);
-        $miniFatStart = $this->getDWord($this->data, 60);
-        $miniFatSectors = $this->getDWord($this->data, 64);
-        $difatStart = $this->getDWord($this->data, 68);
 
-        // Citește FAT
         $fat = [];
-        $fatPos = 76; // DIFAT starts at offset 76
+        $fatPos = 76;
         for ($i = 0; $i < min(109, $fatSectors); $i++) {
             $fatSector = $this->getDWord($this->data, $fatPos + $i * 4);
             if ($fatSector < 0xFFFFFFFE) {
@@ -95,16 +90,14 @@ class SimpleXLS {
             }
         }
 
-        // Citește Directory
         $dirData = '';
         $sector = $directorySectorStart;
         while ($sector < 0xFFFFFFFE && isset($fat[$sector])) {
             $dirData .= substr($this->data, 512 + $sector * $sectorSize, $sectorSize);
             $sector = $fat[$sector];
-            if (strlen($dirData) > 1000000) break; // Safety limit
+            if (strlen($dirData) > 1000000) break;
         }
 
-        // Găsește Workbook entry
         $workbookStart = -1;
         $workbookSize = 0;
         for ($i = 0; $i < strlen($dirData) / 128; $i++) {
@@ -126,7 +119,6 @@ class SimpleXLS {
             return false;
         }
 
-        // Extrage Workbook stream
         $workbook = '';
         $sector = $workbookStart;
         while ($sector < 0xFFFFFFFE && strlen($workbook) < $workbookSize) {
@@ -144,16 +136,40 @@ class SimpleXLS {
         $currentSheet = [];
         $sheetIndex = 0;
 
+        // Colectează SST și CONTINUE records separat
+        $sstRecords = [];
+        $collectingSST = false;
+        $tempPos = 0;
+
+        while ($tempPos < $len - 4) {
+            $recordType = $this->getWord($workbook, $tempPos);
+            $recordLen = $this->getWord($workbook, $tempPos + 2);
+            $recordData = substr($workbook, $tempPos + 4, $recordLen);
+
+            if ($recordType == 0x00FC) { // SST
+                $sstRecords = [$recordData];
+                $collectingSST = true;
+            } elseif ($recordType == 0x003C && $collectingSST) { // CONTINUE
+                $sstRecords[] = $recordData;
+            } elseif ($collectingSST && $recordType != 0x003C) {
+                $collectingSST = false;
+            }
+
+            $tempPos += 4 + $recordLen;
+        }
+
+        // Parsează SST cu CONTINUE support
+        if (!empty($sstRecords)) {
+            $this->parseSSTWithContinue($sstRecords);
+        }
+
+        // A doua trecere pentru celule
         while ($pos < $len - 4) {
             $recordType = $this->getWord($workbook, $pos);
             $recordLen = $this->getWord($workbook, $pos + 2);
             $recordData = substr($workbook, $pos + 4, $recordLen);
 
             switch ($recordType) {
-                case 0x00FC: // SST - Shared String Table
-                    $this->parseSST($recordData);
-                    break;
-
                 case 0x0203: // NUMBER
                     $row = $this->getWord($recordData, 0);
                     $col = $this->getWord($recordData, 2);
@@ -162,7 +178,7 @@ class SimpleXLS {
                     $currentSheet[$row][$col] = $value;
                     break;
 
-                case 0x00FD: // LABELSST - String from SST
+                case 0x00FD: // LABELSST
                     $row = $this->getWord($recordData, 0);
                     $col = $this->getWord($recordData, 2);
                     $sstIndex = $this->getDWord($recordData, 6);
@@ -170,7 +186,7 @@ class SimpleXLS {
                     $currentSheet[$row][$col] = $this->sst[$sstIndex] ?? '';
                     break;
 
-                case 0x0204: // LABEL (old format)
+                case 0x0204: // LABEL
                     $row = $this->getWord($recordData, 0);
                     $col = $this->getWord($recordData, 2);
                     $strLen = $this->getWord($recordData, 6);
@@ -179,7 +195,7 @@ class SimpleXLS {
                     $currentSheet[$row][$col] = $value;
                     break;
 
-                case 0x027E: // RK - Compressed number
+                case 0x027E: // RK
                     $row = $this->getWord($recordData, 0);
                     $col = $this->getWord($recordData, 2);
                     $value = $this->parseRK(substr($recordData, 6, 4));
@@ -187,7 +203,7 @@ class SimpleXLS {
                     $currentSheet[$row][$col] = $value;
                     break;
 
-                case 0x00BD: // MULRK - Multiple RK
+                case 0x00BD: // MULRK
                     $row = $this->getWord($recordData, 0);
                     $colFirst = $this->getWord($recordData, 2);
                     $colLast = $this->getWord($recordData, $recordLen - 2);
@@ -200,7 +216,7 @@ class SimpleXLS {
                     }
                     break;
 
-                case 0x000A: // EOF - End of sheet
+                case 0x000A: // EOF
                     if (!empty($currentSheet)) {
                         $this->sheets[$sheetIndex] = $this->normalizeSheet($currentSheet);
                         $sheetIndex++;
@@ -212,7 +228,6 @@ class SimpleXLS {
             $pos += 4 + $recordLen;
         }
 
-        // Adaugă ultimul sheet dacă există date
         if (!empty($currentSheet)) {
             $this->sheets[$sheetIndex] = $this->normalizeSheet($currentSheet);
         }
@@ -220,49 +235,180 @@ class SimpleXLS {
         return !empty($this->sheets);
     }
 
-    private function parseSST($data) {
-        $totalStrings = $this->getDWord($data, 0);
-        $uniqueStrings = $this->getDWord($data, 4);
-        $pos = 8;
-        $len = strlen($data);
+    /**
+     * Parsează SST cu suport complet pentru CONTINUE records
+     */
+    private function parseSSTWithContinue($records) {
+        if (empty($records)) return;
 
-        for ($i = 0; $i < $uniqueStrings && $pos < $len; $i++) {
-            if ($pos + 3 > $len) break;
+        $firstRecord = $records[0];
+        $uniqueStrings = $this->getDWord($firstRecord, 4);
 
-            $charCount = $this->getWord($data, $pos);
-            $flags = ord($data[$pos + 2]);
-            $pos += 3;
+        // Creăm un buffer de bytes din toate recordurile
+        // și ținem minte granițele pentru a gestiona Unicode flag
+        $buffers = [];
+        foreach ($records as $idx => $rec) {
+            $buffers[] = [
+                'data' => $rec,
+                'pos' => 0,
+                'len' => strlen($rec)
+            ];
+        }
+
+        $bufIdx = 0;
+        $bufPos = 8; // Skip totalStrings + uniqueStrings în primul record
+
+        // Funcții helper pentru citire cu suport CONTINUE
+        $readByte = function() use (&$buffers, &$bufIdx, &$bufPos) {
+            while ($bufIdx < count($buffers)) {
+                if ($bufPos < $buffers[$bufIdx]['len']) {
+                    $byte = ord($buffers[$bufIdx]['data'][$bufPos]);
+                    $bufPos++;
+                    return $byte;
+                }
+                $bufIdx++;
+                $bufPos = 0;
+            }
+            return null;
+        };
+
+        $readWord = function() use ($readByte) {
+            $lo = $readByte();
+            $hi = $readByte();
+            if ($lo === null || $hi === null) return null;
+            return $lo | ($hi << 8);
+        };
+
+        $readDWord = function() use ($readByte) {
+            $b0 = $readByte();
+            $b1 = $readByte();
+            $b2 = $readByte();
+            $b3 = $readByte();
+            if ($b0 === null) return null;
+            return $b0 | ($b1 << 8) | ($b2 << 16) | ($b3 << 24);
+        };
+
+        // Citește string cu suport pentru continuare la granița de record
+        $readString = function($charCount, $isUnicode) use (&$buffers, &$bufIdx, &$bufPos, $readByte) {
+            $str = '';
+            $charsRead = 0;
+            $currentUnicode = $isUnicode;
+
+            while ($charsRead < $charCount) {
+                // Verifică dacă trebuie să trecem la următorul buffer
+                if ($bufIdx < count($buffers) && $bufPos >= $buffers[$bufIdx]['len']) {
+                    // Trecem la CONTINUE record
+                    $bufIdx++;
+                    if ($bufIdx >= count($buffers)) break;
+                    $bufPos = 0;
+
+                    // Primul byte din CONTINUE este flag-ul Unicode pentru continuare
+                    $contFlag = ord($buffers[$bufIdx]['data'][0]);
+                    $currentUnicode = ($contFlag & 0x01) != 0;
+                    $bufPos = 1;
+                }
+
+                if ($bufIdx >= count($buffers)) break;
+
+                $bytesPerChar = $currentUnicode ? 2 : 1;
+                $charsNeeded = $charCount - $charsRead;
+                $bytesAvailable = $buffers[$bufIdx]['len'] - $bufPos;
+                $charsCanRead = intval($bytesAvailable / $bytesPerChar);
+                $charsToRead = min($charsNeeded, $charsCanRead);
+
+                if ($charsToRead <= 0) {
+                    // Nu avem suficienți bytes pentru un caracter, trecem la următorul buffer
+                    $bufIdx++;
+                    if ($bufIdx >= count($buffers)) break;
+                    $bufPos = 0;
+                    $contFlag = ord($buffers[$bufIdx]['data'][0]);
+                    $currentUnicode = ($contFlag & 0x01) != 0;
+                    $bufPos = 1;
+                    continue;
+                }
+
+                $bytesToRead = $charsToRead * $bytesPerChar;
+                $chunk = substr($buffers[$bufIdx]['data'], $bufPos, $bytesToRead);
+                $bufPos += $bytesToRead;
+
+                if ($currentUnicode) {
+                    // Convert UTF-16LE to UTF-8
+                    for ($i = 0; $i + 1 < strlen($chunk); $i += 2) {
+                        $code = ord($chunk[$i]) | (ord($chunk[$i + 1]) << 8);
+                        if ($code < 0x80) {
+                            $str .= chr($code);
+                        } elseif ($code < 0x800) {
+                            $str .= chr(0xC0 | ($code >> 6));
+                            $str .= chr(0x80 | ($code & 0x3F));
+                        } else {
+                            $str .= chr(0xE0 | ($code >> 12));
+                            $str .= chr(0x80 | (($code >> 6) & 0x3F));
+                            $str .= chr(0x80 | ($code & 0x3F));
+                        }
+                    }
+                } else {
+                    $str .= $chunk;
+                }
+
+                $charsRead += $charsToRead;
+            }
+
+            return $str;
+        };
+
+        // Skip bytes cu suport pentru granițe de buffer
+        $skipBytes = function($count) use (&$buffers, &$bufIdx, &$bufPos) {
+            $remaining = $count;
+            while ($remaining > 0 && $bufIdx < count($buffers)) {
+                $available = $buffers[$bufIdx]['len'] - $bufPos;
+                if ($available >= $remaining) {
+                    $bufPos += $remaining;
+                    $remaining = 0;
+                } else {
+                    $remaining -= $available;
+                    $bufIdx++;
+                    $bufPos = 0;
+                }
+            }
+        };
+
+        // Parsează fiecare string
+        for ($strNum = 0; $strNum < $uniqueStrings; $strNum++) {
+            $charCount = $readWord();
+            if ($charCount === null) break;
+
+            $flags = $readByte();
+            if ($flags === null) break;
 
             $isUnicode = ($flags & 0x01) != 0;
             $hasRichText = ($flags & 0x08) != 0;
             $hasAsian = ($flags & 0x04) != 0;
 
-            if ($hasRichText && $pos + 2 <= $len) {
-                $richTextRuns = $this->getWord($data, $pos);
-                $pos += 2;
-            }
-            if ($hasAsian && $pos + 4 <= $len) {
-                $asianSize = $this->getDWord($data, $pos);
-                $pos += 4;
+            $richTextRuns = 0;
+            $asianSize = 0;
+
+            if ($hasRichText) {
+                $richTextRuns = $readWord();
+                if ($richTextRuns === null) $richTextRuns = 0;
             }
 
-            $strLen = $isUnicode ? $charCount * 2 : $charCount;
-            if ($pos + $strLen > $len) {
-                $strLen = $len - $pos;
+            if ($hasAsian) {
+                $asianSize = $readDWord();
+                if ($asianSize === null) $asianSize = 0;
             }
 
-            $str = substr($data, $pos, $strLen);
-            if ($isUnicode) {
-                $str = $this->utf16ToUtf8($str);
-            }
+            // Citește stringul
+            $str = $readString($charCount, $isUnicode);
             $this->sst[] = $str;
-            $pos += $strLen;
 
-            if ($hasRichText && isset($richTextRuns)) {
-                $pos += $richTextRuns * 4;
+            // Skip rich text formatting runs
+            if ($richTextRuns > 0) {
+                $skipBytes($richTextRuns * 4);
             }
-            if ($hasAsian && isset($asianSize)) {
-                $pos += $asianSize;
+
+            // Skip asian phonetic data
+            if ($asianSize > 0) {
+                $skipBytes($asianSize);
             }
         }
     }
@@ -353,6 +499,7 @@ class SimpleXLS {
     private function utf16ToUtf8($str) {
         $result = '';
         for ($i = 0; $i < strlen($str); $i += 2) {
+            if ($i + 1 >= strlen($str)) break;
             $code = ord($str[$i]) | (ord($str[$i + 1]) << 8);
             if ($code < 0x80) {
                 $result .= chr($code);

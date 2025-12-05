@@ -142,32 +142,32 @@
         html += '<div class="container-section">';
         html += '<div class="container-title">' + containerNumber + '</div>';
 
-        const containerImage = result.container_image || '/images/containere/Containere.png';
-        html += '<img src="' + containerImage + '" alt="Container" class="container-image-large" onerror="this.src=\'/images/containere/Containere.png\'">';
+        const containerImage = result.container_image || '/assets/images/container_model.png';
+        html += '<img src="' + containerImage + '" alt="Container" class="container-image-large" onerror="this.src=\'/assets/images/container_model.png\'">';
 
         html += '</div>';
 
         // Ship section - afiseaza informatii despre nava
         const shipName = result.ship_name;
-        const shipFlag = result.ship_flag;
+        const flagImage = result.flag_image;
+        const pavilionName = result.pavilion_name;
+        const shipImage = result.ship_image;
 
         if (shipName && shipName !== 'N/A') {
             html += '<div class="ship-section">';
             html += '<div class="ship-title">' + shipName;
 
-            // Flag image if available
-            if (shipFlag && shipFlag !== 'N/A') {
-                const flagCode = shipFlag.toLowerCase();
-                const countryName = countryNames[shipFlag] || shipFlag;
-                html += ' <img src="/images/steaguri/' + flagCode + '.png" alt="Flag" title="' + countryName + '" class="flag-icon" style="display:inline-block;width:24px;height:16px;margin-left:8px;" onError="this.style.display=' + "'none'" + '">';
+            // Flag image from pavilion
+            if (flagImage) {
+                html += ' <img src="' + flagImage + '" alt="Flag" title="' + (pavilionName || '') + '" class="flag-icon" style="display:inline-block;width:24px;height:16px;margin-left:8px;object-fit:contain;" onerror="this.style.display=\'none\'">';
             }
 
             html += '</div>';
 
-            // Ship image - cautam dupa numele navei (fara spatii, lowercase)
-            const shipImageName = shipName.replace(/\s+/g, '_').toLowerCase();
-            const shipImgSrc = '/images/nave/' + shipImageName + '.jpg';
-            html += '<img src="' + shipImgSrc + '" alt="Ship" class="ship-image">';
+            // Ship image from API
+            if (shipImage) {
+                html += '<img src="' + shipImage + '" alt="Ship" class="ship-image" onerror="this.src=\'/assets/images/vapor_model.png\'">';
+            }
 
             html += '</div>';
         }
@@ -186,12 +186,16 @@
         fetch('/api/latest_manifest.php')
             .then(response => response.json())
             .then(data => {
-                if (data.manifest_number && data.manifest_number !== 'N/A') {
-                    const shipName = data.ship_name || 'N/A';
-                    const manifestNumber = data.manifest_number;
-                    const arrivalDate = data.arrival_date ? new Date(data.arrival_date).toLocaleDateString('ro-RO') : 'N/A';
-
-                    infoElement.innerHTML = 'Ultima navă actualizată: <strong>' + shipName.toUpperCase() + '</strong>, manifest <strong>' + manifestNumber + '</strong> din data <strong>' + arrivalDate + '</strong>';
+                if (data.manifests && data.manifests.length > 0) {
+                    let html = '<strong>Ultimele nave importate:</strong> ';
+                    const items = data.manifests.map(m => {
+                        const shipName = m.ship_name || 'N/A';
+                        const manifestNumber = m.manifest_number;
+                        const arrivalDate = m.arrival_date ? new Date(m.arrival_date).toLocaleDateString('ro-RO') : 'N/A';
+                        return '<span style="white-space:nowrap;">' + shipName.toUpperCase() + ' (M' + manifestNumber + ', ' + arrivalDate + ')</span>';
+                    });
+                    html += items.join(' | ');
+                    infoElement.innerHTML = html;
                 } else {
                     infoElement.innerHTML = 'Nicio informație disponibilă';
                 }

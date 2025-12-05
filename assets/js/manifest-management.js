@@ -6,23 +6,45 @@ let searchFilters = {};
 async function loadManifestsView() {
     const container = document.getElementById('manifests-view-container');
 
+    // Încarcă anii disponibili
+    let yearsOptions = '<option value="">Toți anii</option>';
+    try {
+        const yearsResponse = await fetch('api/database_years.php');
+        const yearsData = await yearsResponse.json();
+        if (yearsData.data) {
+            yearsData.data.forEach(y => {
+                const isActive = y.is_active == 1;
+                const selected = isActive ? 'selected' : '';
+                yearsOptions += `<option value="${y.id}" ${selected}>${y.year}${isActive ? ' (Activ)' : ''}</option>`;
+            });
+        }
+    } catch (e) {
+        console.error('Eroare la încărcare ani:', e);
+    }
+
     container.innerHTML = `
         <div class="card mb-4">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted mb-1">An</label>
+                        <select id="manifest-year" class="form-select">
+                            ${yearsOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label small text-muted mb-1">Căutare</label>
                         <input type="text" id="manifest-search" class="form-control" placeholder="Nr. manifest sau nume navă...">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small text-muted mb-1">Data început</label>
                         <input type="date" id="date-from" class="form-control">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small text-muted mb-1">Data sfârșit</label>
                         <input type="date" id="date-to" class="form-control">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <button onclick="searchManifests()" class="btn btn-primary w-100">
                             <i class="bi bi-search"></i> Caută
                         </button>
@@ -60,6 +82,12 @@ async function loadManifestsView() {
             </div>
         </div>
     `;
+
+    // Setează filtrul pe anul activ (selectat în dropdown)
+    const yearSelect = document.getElementById('manifest-year');
+    if (yearSelect && yearSelect.value) {
+        searchFilters.year_id = yearSelect.value;
+    }
 
     // Încarcă manifeste
     await loadManifests();
@@ -190,7 +218,8 @@ async function searchManifests() {
     searchFilters = {
         search: document.getElementById('manifest-search').value,
         date_from: document.getElementById('date-from').value,
-        date_to: document.getElementById('date-to').value
+        date_to: document.getElementById('date-to').value,
+        year_id: document.getElementById('manifest-year').value
     };
 
     await loadManifests(1);
@@ -387,7 +416,7 @@ function editCell(cell) {
     const field = cell.getAttribute('data-field');
     const entryId = cell.closest('tr').getAttribute('data-entry-id');
     const row = cell.closest('tr');
-    const containerCell = row.querySelector('td:nth-child(2)'); // Celula cu containerul
+    const containerCell = row.querySelector('td:nth-child(6)'); // Celula cu containerul (coloana 6)
 
     // Nu permite editare multipla
     if (cell.querySelector('input')) {

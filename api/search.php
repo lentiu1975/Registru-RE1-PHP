@@ -92,34 +92,39 @@ foreach ($results as &$result) {
         }
     }
 
-    // Fallback final la imagine generală
+    // Fallback final la imagine model
     if (!$containerImage) {
-        $containerImage = '/images/containere/Containere.png';
+        $containerImage = '/assets/images/container_model.png';
     }
 
     $result['container_image'] = $containerImage;
 
-    // Ship information - datele vin direct din baza de date (ship_name, ship_flag)
-    // ship_name și ship_flag sunt deja în $result din query
-
-    // Ship image path (dacă există ship_name)
+    // Ship information - caută nava în tabela ships pentru a obține imaginea și pavilionul
     $shipName = $result['ship_name'] ?? null;
-    $shipFlag = $result['ship_flag'] ?? null;
 
     if ($shipName && $shipName !== 'N/A') {
-        // Transformă numele navei în format filename (lowercase, underscore)
-        $shipImageName = strtolower(str_replace(' ', '_', $shipName));
-        $result['ship_image'] = "/images/nave/{$shipImageName}.jpg";
+        // Caută nava în tabela ships cu pavilionul asociat
+        $shipData = dbFetchOne("
+            SELECT s.image as ship_image, p.flag_image, p.name as pavilion_name
+            FROM ships s
+            LEFT JOIN pavilions p ON s.pavilion_id = p.id
+            WHERE s.name = ?
+        ", [$shipName]);
+
+        if ($shipData) {
+            $result['ship_image'] = $shipData['ship_image'] ?: '/assets/images/vapor_model.png';
+            $result['flag_image'] = $shipData['flag_image'] ?: null;
+            $result['pavilion_name'] = $shipData['pavilion_name'] ?: null;
+        } else {
+            // Fallback - nava nu e în tabela ships
+            $result['ship_image'] = '/assets/images/vapor_model.png';
+            $result['flag_image'] = null;
+            $result['pavilion_name'] = null;
+        }
     } else {
         $result['ship_image'] = null;
-    }
-
-    // Flag icon path (dacă există ship_flag)
-    if ($shipFlag && $shipFlag !== 'N/A') {
-        $flagCode = strtolower($shipFlag);
-        $result['flag_image'] = "/images/steaguri/{$flagCode}.png";
-    } else {
         $result['flag_image'] = null;
+        $result['pavilion_name'] = null;
     }
 }
 
