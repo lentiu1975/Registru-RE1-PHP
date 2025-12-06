@@ -39,6 +39,7 @@ if (!$data) {
 
 $userId = $data['user_id'] ?? null;
 $password = $data['password'] ?? null;
+$emailType = $data['type'] ?? 'new_account'; // 'new_account' sau 'password_change'
 
 if (!$userId) {
     jsonResponse(['error' => 'ID utilizator lipsă'], 400);
@@ -67,7 +68,7 @@ if (!$emailSettings) {
 }
 
 // Trimite email
-$result = sendCredentialsEmail($user, $password, $emailSettings);
+$result = sendCredentialsEmail($user, $password, $emailSettings, $emailType);
 
 if ($result['success']) {
     jsonResponse(['success' => true, 'message' => 'Email trimis cu succes la ' . $user['email']]);
@@ -78,14 +79,36 @@ if ($result['success']) {
 /**
  * Trimite email cu credențiale folosind SMTP
  */
-function sendCredentialsEmail($user, $password, $settings) {
+function sendCredentialsEmail($user, $password, $settings, $emailType = 'new_account') {
     $to = $user['email'];
     $username = $user['username'];
     $fullName = $user['full_name'] ?: $user['username'];
+    $adminEmail = $settings['from_email'] ?? 'admin@vamactasud.lentiu.ro';
 
-    $subject = 'Credentiale cont - Registru Import RE1';
+    // Mesaj diferit în funcție de tip
+    if ($emailType === 'password_change') {
+        $subject = 'Parola contului a fost modificata - Registru Import RE1';
+        $body = "
+Bună ziua, {$fullName}!
 
-    $body = "
+Parola contului dumneavoastră pentru aplicația Registru Import RE1 a fost modificată.
+
+Noile date de autentificare:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Username: {$username}
+Parola nouă: {$password}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Link acces: http://vamactasud.lentiu.ro/login.php
+
+Dacă nu ați solicitat această modificare, contactați administratorul la: {$adminEmail}
+
+Cu stimă,
+Echipa Registru Import RE1
+";
+    } else {
+        $subject = 'Credentiale cont - Registru Import RE1';
+        $body = "
 Bună ziua, {$fullName}!
 
 Contul dumneavoastră pentru aplicația Registru Import RE1 a fost creat.
@@ -101,6 +124,7 @@ Link acces: http://vamactasud.lentiu.ro/login.php
 Cu stimă,
 Echipa Registru Import RE1
 ";
+    }
 
     // Folosește PHPMailer dacă există, altfel mail() nativ
     $phpmailerPath = __DIR__ . '/../vendor/autoload.php';

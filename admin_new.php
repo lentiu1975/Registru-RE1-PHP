@@ -286,6 +286,12 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 </a>
             </li>
             <li class="sidebar-nav-item">
+                <a href="#companies" class="sidebar-nav-link" data-tab="companies">
+                    <i class="bi bi-building"></i>
+                    <span>Companii</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
                 <a href="#database-years" class="sidebar-nav-link" data-tab="database-years">
                     <i class="bi bi-calendar-range"></i>
                     <span>Ani Baze Date</span>
@@ -352,7 +358,11 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             <div class="user-box">
                 <div class="user-label">Conectat ca:</div>
                 <div class="user-name"><?= htmlspecialchars($currentUser['username']) ?></div>
-                <?php if ($currentUser['is_admin']): ?>
+                <?php
+                $userRole = $_SESSION['user_role'] ?? ($currentUser['role'] ?? ($currentUser['is_admin'] ? 'admin' : 'user'));
+                if ($userRole === 'super_admin'): ?>
+                <span class="badge bg-danger mt-2">Super Admin</span>
+                <?php elseif ($userRole === 'admin'): ?>
                 <span class="badge bg-warning text-dark mt-2">Administrator</span>
                 <?php endif; ?>
             </div>
@@ -497,7 +507,80 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                         <i class="bi bi-plus-circle"></i> Utilizator Nou
                     </button>
                 </div>
+                <!-- Filtre utilizatori -->
+                <div class="card mb-3">
+                    <div class="card-body py-2">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1">Companie</label>
+                                <select id="filterCompany" class="form-select form-select-sm" onchange="loadUsers(1)">
+                                    <option value="">Toate companiile</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1">Ultima accesare</label>
+                                <select id="filterLastAccess" class="form-select form-select-sm" onchange="loadUsers(1)">
+                                    <option value="">Toți utilizatorii</option>
+                                    <option value="today">Accesați azi</option>
+                                    <option value="yesterday">Accesați ieri</option>
+                                    <option value="never">Nu au accesat niciodată</option>
+                                    <optgroup label="Nu au accesat de:">
+                                        <option value="2days">2 zile</option>
+                                        <option value="3days">3 zile</option>
+                                        <option value="1week">1 săptămână</option>
+                                        <option value="1month">1 lună</option>
+                                        <option value="3months">3 luni</option>
+                                        <option value="6months">6 luni</option>
+                                        <option value="1year">1 an</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1">Căutare</label>
+                                <input type="text" id="filterSearch" class="form-control form-control-sm" placeholder="Username, email, nume..." onkeyup="debounceSearch()">
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetUserFilters()">
+                                    <i class="bi bi-x-circle"></i> Resetează
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div id="users-table-container">
+                    <p class="text-center text-muted">Se încarcă...</p>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Companies Tab (Admin only) -->
+        <?php if ($currentUser['is_admin']): ?>
+        <div id="companies-tab" class="tab-pane-content" style="display: none;">
+            <div class="tab-content-section">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Gestionare Companii</h5>
+                    <button class="btn btn-primary" onclick="showCompanyModalNew()">
+                        <i class="bi bi-plus-circle"></i> Companie Nouă
+                    </button>
+                </div>
+                <!-- Căutare companii -->
+                <div class="card mb-3">
+                    <div class="card-body py-2">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-10">
+                                <label class="form-label small mb-1">Căutare</label>
+                                <input type="text" id="searchCompany" class="form-control form-control-sm" placeholder="Caută după nume companie..." onkeyup="debounceCompanySearch()">
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetCompanySearch()">
+                                    <i class="bi bi-x-circle"></i> Resetează
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="companies-table-container">
                     <p class="text-center text-muted">Se încarcă...</p>
                 </div>
             </div>
@@ -793,8 +876,15 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                             <input type="text" class="form-control" id="fullName" name="full_name">
                         </div>
                         <div class="mb-3">
-                            <label for="companyName" class="form-label">Companie</label>
-                            <input type="text" class="form-control" id="companyName" name="company_name">
+                            <label for="companyId" class="form-label">Companie</label>
+                            <div class="input-group">
+                                <select class="form-select" id="companyId" name="company_id">
+                                    <option value="">-- Selectează companie --</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" onclick="showAddCompanyModal()" title="Adaugă companie nouă">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="row">
                             <div class="col-6">
@@ -804,10 +894,14 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                                 </div>
                             </div>
                             <div class="col-6">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="isAdmin" name="is_admin">
-                                    <label class="form-check-label" for="isAdmin">Administrator</label>
-                                </div>
+                                <label for="userRole" class="form-label">Rol</label>
+                                <select class="form-select form-select-sm" id="userRole" name="role">
+                                    <option value="user">Utilizator</option>
+                                    <?php if (($_SESSION['user_role'] ?? '') === 'super_admin'): ?>
+                                    <option value="admin">Admin</option>
+                                    <option value="super_admin">Super Admin</option>
+                                    <?php endif; ?>
+                                </select>
                             </div>
                         </div>
                         <hr>
@@ -822,6 +916,51 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulează</button>
                     <button type="button" class="btn btn-primary" onclick="saveUser()">Salvează</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Adaugă Companie -->
+    <div class="modal fade" id="addCompanyModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Companie Nouă</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="newCompanyName" class="form-label">Nume Companie *</label>
+                        <input type="text" class="form-control" id="newCompanyName" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulează</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNewCompany()">Salvează</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editare Companie -->
+    <div class="modal fade" id="editCompanyModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editCompanyModalTitle">Editare Companie</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editCompanyId">
+                    <div class="mb-3">
+                        <label for="editCompanyName" class="form-label">Nume Companie *</label>
+                        <input type="text" class="form-control" id="editCompanyName" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulează</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEditedCompany()">Salvează</button>
                 </div>
             </div>
         </div>
@@ -1056,6 +1195,9 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
     <script src="assets/js/import-excel.js?v=20251205"></script>
     <script src="assets/js/manifest-management.js?v=20251205"></script>
     <script>
+        // ID-ul utilizatorului curent (pentru a preveni modificarea propriului rol)
+        const CURRENT_USER_ID = <?php echo json_encode($_SESSION['user_id']); ?>;
+
         // Tab switching
         function switchTab(tabName) {
             // Hide all tabs
@@ -1100,7 +1242,11 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     loadManifestsView();
                     break;
                 case 'users':
+                    loadCompaniesForFilters();
                     loadUsers();
+                    break;
+                case 'companies':
+                    loadCompanies();
                     break;
                 case 'database-years':
                     loadDatabaseYears();
@@ -1137,14 +1283,274 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
 
         // Users management
         let usersCurrentPage = 1;
+        let searchTimeout = null;
+
+        // Debounce pentru căutare
+        function debounceSearch() {
+            if (searchTimeout) clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => loadUsers(1), 300);
+        }
+
+        // Reset filtre
+        function resetUserFilters() {
+            document.getElementById('filterCompany').value = '';
+            document.getElementById('filterLastAccess').value = '';
+            document.getElementById('filterSearch').value = '';
+            loadUsers(1);
+        }
+
+        // Încarcă companiile pentru filtre și dropdown
+        async function loadCompaniesForFilters() {
+            try {
+                const response = await fetch('api/companies.php');
+                const result = await response.json();
+                const companies = result.data || [];
+
+                // Populează filtrul de companii
+                const filterSelect = document.getElementById('filterCompany');
+                filterSelect.innerHTML = '<option value="">Toate companiile</option>' +
+                    companies.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${c.user_count || 0})</option>`).join('');
+
+                // Populează dropdown-ul din formularul de utilizator
+                const formSelect = document.getElementById('companyId');
+                if (formSelect) {
+                    formSelect.innerHTML = '<option value="">-- Selectează companie --</option>' +
+                        companies.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+                }
+            } catch (e) {
+                console.log('Error loading companies:', e);
+            }
+        }
+
+        // Modal adaugă companie
+        function showAddCompanyModal() {
+            document.getElementById('newCompanyName').value = '';
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('addCompanyModal'));
+            modal.show();
+        }
+
+        async function saveNewCompany() {
+            const name = document.getElementById('newCompanyName').value.trim();
+            if (!name) {
+                alert('Numele companiei este obligatoriu!');
+                return;
+            }
+
+            try {
+                const response = await fetch('api/companies.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    alert('Eroare: ' + result.error);
+                    return;
+                }
+
+                // Închide modalul
+                bootstrap.Modal.getInstance(document.getElementById('addCompanyModal')).hide();
+
+                // Reîncarcă lista de companii
+                await loadCompaniesForFilters();
+
+                // Selectează noua companie în dropdown
+                document.getElementById('companyId').value = result.id;
+
+                alert('Companie adăugată cu succes!');
+
+                // Dacă suntem pe tab-ul de companii, reîncarcă lista
+                loadCompanies();
+
+            } catch (error) {
+                alert('Eroare: ' + error.message);
+            }
+        }
+
+        // =============================================
+        // COMPANII MANAGEMENT (tab dedicat)
+        // =============================================
+        let companySearchTimeout = null;
+
+        function debounceCompanySearch() {
+            clearTimeout(companySearchTimeout);
+            companySearchTimeout = setTimeout(() => loadCompanies(), 300);
+        }
+
+        function resetCompanySearch() {
+            document.getElementById('searchCompany').value = '';
+            loadCompanies();
+        }
+
+        async function loadCompanies() {
+            const container = document.getElementById('companies-table-container');
+            if (!container) return;
+
+            container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+
+            const search = document.getElementById('searchCompany')?.value || '';
+            let url = 'api/companies.php';
+            if (search) {
+                url += `?search=${encodeURIComponent(search)}`;
+            }
+
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.error) {
+                    container.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+                    return;
+                }
+
+                const companies = result.data || [];
+
+                if (companies.length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">Nu există companii înregistrate.</div>';
+                    return;
+                }
+
+                let html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nume Companie</th>
+                                    <th>Utilizatori</th>
+                                    <th>Data Creare</th>
+                                    <th>Acțiuni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                companies.forEach(company => {
+                    const createdAt = company.created_at ? formatDateTime(company.created_at) : '-';
+                    const userCount = company.user_count || 0;
+
+                    html += `
+                        <tr>
+                            <td>${company.id}</td>
+                            <td><strong>${escapeHtml(company.name)}</strong></td>
+                            <td><span class="badge bg-secondary">${userCount}</span></td>
+                            <td>${createdAt}</td>
+                            <td class="table-actions">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editCompany(${company.id}, '${escapeHtml(company.name).replace(/'/g, "\\'")}')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteCompany(${company.id}, '${escapeHtml(company.name).replace(/'/g, "\\'")}', ${userCount})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="alert alert-danger">Eroare: ${error.message}</div>`;
+            }
+        }
+
+        function showCompanyModalNew() {
+            document.getElementById('newCompanyName').value = '';
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('addCompanyModal'));
+            modal.show();
+        }
+
+        function editCompany(id, name) {
+            document.getElementById('editCompanyId').value = id;
+            document.getElementById('editCompanyName').value = name;
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editCompanyModal'));
+            modal.show();
+        }
+
+        async function saveEditedCompany() {
+            const id = document.getElementById('editCompanyId').value;
+            const name = document.getElementById('editCompanyName').value.trim();
+
+            if (!name) {
+                alert('Numele companiei este obligatoriu!');
+                return;
+            }
+
+            try {
+                const response = await fetch('api/companies.php', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, name: name })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    alert('Eroare: ' + result.error);
+                    return;
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('editCompanyModal')).hide();
+                loadCompanies();
+                loadCompaniesForFilters();
+                alert('Companie actualizată cu succes!');
+
+            } catch (error) {
+                alert('Eroare: ' + error.message);
+            }
+        }
+
+        async function deleteCompany(id, name, userCount) {
+            if (userCount > 0) {
+                alert(`Nu poți șterge compania "${name}" deoarece are ${userCount} utilizator${userCount > 1 ? 'i' : ''} asociat${userCount > 1 ? 'i' : ''}.\n\nMai întâi trebuie să muți utilizatorii la altă companie.`);
+                return;
+            }
+
+            if (!confirm(`Sigur ștergi compania "${name}"?\n\nAceastă acțiune nu poate fi anulată!`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`api/companies.php?id=${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    alert('Eroare: ' + result.error);
+                    return;
+                }
+
+                loadCompanies();
+                loadCompaniesForFilters();
+                alert('Companie ștearsă cu succes!');
+
+            } catch (error) {
+                alert('Eroare: ' + error.message);
+            }
+        }
 
         async function loadUsers(page = 1) {
             usersCurrentPage = page;
             const container = document.getElementById('users-table-container');
             container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
 
+            // Construiește URL cu filtre
+            const companyId = document.getElementById('filterCompany')?.value || '';
+            const lastAccess = document.getElementById('filterLastAccess')?.value || '';
+            const search = document.getElementById('filterSearch')?.value || '';
+
+            let url = `api/users.php?page=${page}`;
+            if (companyId) url += `&company_id=${companyId}`;
+            if (lastAccess) url += `&last_access=${lastAccess}`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+
             try {
-                const response = await fetch(`api/users.php?page=${page}`);
+                const response = await fetch(url);
                 const result = await response.json();
 
                 if (result.error) {
@@ -1183,10 +1589,32 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     const statusBadge = user.is_active
                         ? '<span class="badge bg-success">Activ</span>'
                         : '<span class="badge bg-danger">Inactiv</span>';
-                    const roleBadge = user.is_admin
-                        ? '<span class="badge bg-warning text-dark">Admin</span>'
-                        : '<span class="badge bg-secondary">Utilizator</span>';
+                    let roleBadge;
+                    const role = user.role || (user.is_admin ? 'admin' : 'user');
+                    if (role === 'super_admin') {
+                        roleBadge = '<span class="badge bg-danger">Super Admin</span>';
+                    } else if (role === 'admin') {
+                        roleBadge = '<span class="badge bg-warning text-dark">Admin</span>';
+                    } else {
+                        roleBadge = '<span class="badge bg-secondary">Utilizator</span>';
+                    }
                     const lastLogin = user.last_login ? formatDateTime(user.last_login) : 'Niciodată';
+
+                    // Butoane în funcție de permisiuni returnate de API
+                    let actionButtons = '';
+                    if (user.can_edit) {
+                        actionButtons += `<button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})" title="Editează">
+                            <i class="bi bi-pencil"></i>
+                        </button> `;
+                    }
+                    if (user.can_delete) {
+                        actionButtons += `<button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')" title="Șterge">
+                            <i class="bi bi-trash"></i>
+                        </button>`;
+                    }
+                    if (!actionButtons) {
+                        actionButtons = '<span class="text-muted small">-</span>';
+                    }
 
                     html += `
                         <tr>
@@ -1194,18 +1622,11 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                             <td><strong>${escapeHtml(user.username)}</strong></td>
                             <td>${escapeHtml(user.email || '-')}</td>
                             <td>${escapeHtml(user.full_name || '-')}</td>
-                            <td>${escapeHtml(user.company_name || '-')}</td>
+                            <td>${escapeHtml(user.company_display_name || user.company_name || '-')}</td>
                             <td>${statusBadge}</td>
                             <td>${roleBadge}</td>
                             <td>${lastLogin}</td>
-                            <td class="table-actions">
-                                <button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})" title="Editează">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')" title="Șterge">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
+                            <td class="table-actions">${actionButtons}</td>
                         </tr>
                     `;
                 });
@@ -1243,7 +1664,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         }
 
         function showUserModal(userId = null) {
-            const modal = new bootstrap.Modal(document.getElementById('userModal'));
+            const modalEl = document.getElementById('userModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             const form = document.getElementById('userForm');
             const title = document.getElementById('userModalTitle');
             const passwordHint = document.getElementById('passwordHint');
@@ -1252,7 +1674,11 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             form.reset();
             document.getElementById('userId').value = '';
             document.getElementById('isActive').checked = true;
-            document.getElementById('isAdmin').checked = false;
+            document.getElementById('isActive').disabled = false; // Reactivează checkbox-ul
+            document.getElementById('isActive').title = '';
+            document.getElementById('userRole').value = 'user';
+            document.getElementById('userRole').disabled = false; // Reactivează dropdown-ul
+            document.getElementById('userRole').title = '';
             document.getElementById('sendCredentials').checked = false;
             document.getElementById('generatedPasswordInfo').style.display = 'none';
 
@@ -1321,10 +1747,25 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 document.getElementById('username').value = user.username || '';
                 document.getElementById('email').value = user.email || '';
                 document.getElementById('fullName').value = user.full_name || '';
-                document.getElementById('companyName').value = user.company_name || '';
+                document.getElementById('companyId').value = user.company_id || '';
                 document.getElementById('isActive').checked = user.is_active == 1;
-                document.getElementById('isAdmin').checked = user.is_admin == 1;
+                document.getElementById('userRole').value = user.role || (user.is_admin == 1 ? 'admin' : 'user');
                 document.getElementById('password').value = '';
+
+                // Dezactivează dropdown-ul de rol și checkbox-ul Activ dacă editezi propriul cont
+                const roleSelect = document.getElementById('userRole');
+                const isActiveCheckbox = document.getElementById('isActive');
+                if (user.id == CURRENT_USER_ID) {
+                    roleSelect.disabled = true;
+                    roleSelect.title = 'Nu îți poți schimba propriul rol';
+                    isActiveCheckbox.disabled = true;
+                    isActiveCheckbox.title = 'Nu te poți dezactiva singur';
+                } else {
+                    roleSelect.disabled = false;
+                    roleSelect.title = '';
+                    isActiveCheckbox.disabled = false;
+                    isActiveCheckbox.title = '';
+                }
 
             } catch (error) {
                 alert('Eroare la încărcarea utilizatorului: ' + error.message);
@@ -1339,9 +1780,9 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 username: document.getElementById('username').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 full_name: document.getElementById('fullName').value.trim(),
-                company_name: document.getElementById('companyName').value.trim(),
+                company_id: document.getElementById('companyId').value || null,
                 is_active: document.getElementById('isActive').checked ? 1 : 0,
-                is_admin: document.getElementById('isAdmin').checked ? 1 : 0
+                role: document.getElementById('userRole').value
             };
 
             const password = document.getElementById('password').value;
@@ -1397,7 +1838,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 // Dacă trebuie să trimitem credențiale
                 if (sendCredentials && password) {
                     const newUserId = result.id || userId;
-                    await sendCredentialsEmail(newUserId, password);
+                    const emailType = isNew ? 'new_account' : 'password_change';
+                    await sendCredentialsEmail(newUserId, password, emailType);
                 }
 
                 // Închide modalul
@@ -1418,12 +1860,13 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         }
 
         // Trimite credențiale prin email
-        async function sendCredentialsEmail(userId, password) {
+        // type: 'new_account' sau 'password_change'
+        async function sendCredentialsEmail(userId, password, type = 'new_account') {
             try {
                 const response = await fetch('api/send_credentials.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, password: password })
+                    body: JSON.stringify({ user_id: userId, password: password, type: type })
                 });
 
                 const result = await response.json();
@@ -1608,7 +2051,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         }
 
         function showYearModal() {
-            const modal = new bootstrap.Modal(document.getElementById('yearModal'));
+            const modalEl = document.getElementById('yearModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             document.getElementById('yearForm').reset();
             document.getElementById('yearId').value = '';
             document.getElementById('yearValue').value = new Date().getFullYear();
@@ -1788,7 +2232,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         }
 
         function showPavilionModal() {
-            const modal = new bootstrap.Modal(document.getElementById('pavilionModal'));
+            const modalEl = document.getElementById('pavilionModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             document.getElementById('pavilionForm').reset();
             document.getElementById('pavilionId').value = '';
             document.getElementById('pavilionImage').value = '';
@@ -1823,7 +2268,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     preview.innerHTML = '<small class="text-muted">Fără imagine</small>';
                 }
 
-                const modal = new bootstrap.Modal(document.getElementById('pavilionModal'));
+                const modalEl = document.getElementById('pavilionModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.show();
 
             } catch (error) {
@@ -2042,7 +2488,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
 
             await loadPavilionsForSelect();
 
-            const modal = new bootstrap.Modal(document.getElementById('shipModal'));
+            const modalEl = document.getElementById('shipModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
         }
 
@@ -2074,7 +2521,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     preview.innerHTML = '<small class="text-muted">Fără imagine</small>';
                 }
 
-                const modal = new bootstrap.Modal(document.getElementById('shipModal'));
+                const modalEl = document.getElementById('shipModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.show();
 
             } catch (error) {
@@ -2286,7 +2734,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         }
 
         function showContainerTypeModal() {
-            const modal = new bootstrap.Modal(document.getElementById('containerTypeModal'));
+            const modalEl = document.getElementById('containerTypeModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             document.getElementById('containerTypeForm').reset();
             document.getElementById('containerTypeId').value = '';
             document.getElementById('containerImagine').value = '';
@@ -2319,7 +2768,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 }
                 document.getElementById('containerTypeModalTitle').textContent = 'Editare Tip Container';
 
-                const modal = new bootstrap.Modal(document.getElementById('containerTypeModal'));
+                const modalEl = document.getElementById('containerTypeModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.show();
 
             } catch (error) {
@@ -2490,7 +2940,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         }
 
         function showTemplateModal() {
-            const modal = new bootstrap.Modal(document.getElementById('templateModal'));
+            const modalEl = document.getElementById('templateModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             document.getElementById('templateForm').reset();
             document.getElementById('templateId').value = '';
             document.getElementById('templateModalTitle').textContent = 'Template Nou';
@@ -2531,7 +2982,8 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 document.getElementById('mapNumarSumara').value = mapping.numar_sumara || '';
                 document.getElementById('mapLinieMaritima').value = mapping.linie_maritima || '';
 
-                const modal = new bootstrap.Modal(document.getElementById('templateModal'));
+                const modalEl = document.getElementById('templateModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.show();
 
             } catch (error) {
@@ -3133,16 +3585,38 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 }
             } catch (e) { console.log('Stats error:', e); }
 
+            // Obține anii disponibili din datele reale (data_inregistrare)
+            let years = [];
+            try {
+                const yearsResponse = await fetch('api/available_years.php');
+                const yearsResult = await yearsResponse.json();
+                if (yearsResult.data) {
+                    years = yearsResult.data;
+                }
+            } catch (e) { console.log('Years error:', e); }
+
+            const currentYear = new Date().getFullYear();
+            // Primul an din listă este selectat implicit (cel mai recent)
+            const yearsOptions = years.map((y, idx) =>
+                `<option value="${y.year}" ${idx === 0 ? 'selected' : ''}>${y.year} (${y.count} înregistrări)</option>`
+            ).join('');
+
             container.innerHTML = `
                 <div class="row">
                     <div class="col-md-6 mb-4">
                         <div class="card">
                             <div class="card-body">
-                                <h5 class="card-title">Export Toate Datele</h5>
-                                <p class="text-muted">Exportă toate înregistrările din baza de date</p>
-                                <p><strong>${stats.total_entries.toLocaleString()}</strong> înregistrări în <strong>${stats.total_manifests}</strong> manifeste</p>
-                                <button class="btn btn-success" onclick="exportAllData('xls')">
-                                    <i class="bi bi-file-earmark-excel"></i> Export Excel
+                                <h5 class="card-title">Export pe An</h5>
+                                <p class="text-muted">Exportă toate înregistrările pentru anul selectat</p>
+                                <div class="mb-3">
+                                    <label for="exportYearSelect" class="form-label">Selectează anul:</label>
+                                    <select id="exportYearSelect" class="form-select">
+                                        ${yearsOptions || `<option value="${currentYear}">${currentYear}</option>`}
+                                    </select>
+                                </div>
+                                <p class="small text-muted mb-2">Include: colorare duplicate (galben) și observații (roșu)</p>
+                                <button class="btn btn-success" onclick="exportByYear()">
+                                    <i class="bi bi-file-earmark-excel"></i> Export Excel (XLSX)
                                 </button>
                             </div>
                         </div>
@@ -3183,6 +3657,15 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
 
         function exportAllData(format) {
             window.open('api/export_all.php?format=' + format, '_blank');
+        }
+
+        function exportByYear() {
+            const year = document.getElementById('exportYearSelect').value;
+            if (!year) {
+                alert('Selectează un an!');
+                return;
+            }
+            window.open('api/export_by_year.php?year=' + year, '_blank');
         }
 
         async function exportManifestFromSelect(format) {
