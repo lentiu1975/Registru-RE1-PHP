@@ -109,7 +109,7 @@
 
         // Format: manifest/permit/position/request - date
         const manifestInfo = manifestNumber + '/' + permitNumber + '/' + positionNumber + '/' + operationRequest + ' - ' + arrivalDate;
-        html += '<div class="manifest-info">' + manifestInfo + '</div>';
+        html += '<div class="manifest-info copyable" onclick="copyToClipboard(\'' + manifestInfo.replace(/'/g, "\\'") + '\')" title="Click pentru a copia">' + manifestInfo + '</div>';
 
         // Colete și Greutate
         const weight = result.weight || 'N/A';
@@ -129,11 +129,13 @@
 
         // Număr sumară (NUMERELE SUMARE, nu pavilionul!) - split by ; or ,
         let summaryNumber = result.summary_number || 'N/A';
+        let summaryNumberDisplay = summaryNumber;
         if (summaryNumber !== 'N/A') {
-            // Split by semicolon or comma and display each on new line
-            summaryNumber = summaryNumber.split(/[;,]/).map(s => s.trim()).filter(s => s).join('<br>');
+            // Split by semicolon or comma and make each clickable
+            const summaryParts = summaryNumber.split(/[;,]/).map(s => s.trim()).filter(s => s);
+            summaryNumberDisplay = summaryParts.map(s => '<span class="copyable" onclick="copyToClipboard(\'' + s.replace(/'/g, "\\'") + '\')" title="Click pentru a copia">' + s + '</span>').join('<br>');
         }
-        html += '<div class="info-item"><span class="info-label">Număr sumară:</span><div class="info-value">' + summaryNumber + '</div></div>';
+        html += '<div class="info-item"><span class="info-label">Număr sumară:</span><div class="info-value">' + summaryNumberDisplay + '</div></div>';
 
         html += '</div>';
 
@@ -221,3 +223,45 @@
         }
     };
 });
+
+// Funcție globală pentru copy to clipboard
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Afișează notificare toast
+        showCopyToast('Copiat: ' + text);
+    }).catch(function(err) {
+        // Fallback pentru browsere mai vechi
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showCopyToast('Copiat: ' + text);
+    });
+}
+
+// Toast notification pentru copy
+function showCopyToast(message) {
+    // Elimină toast-ul existent dacă există
+    const existingToast = document.getElementById('copyToast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    const toast = document.createElement('div');
+    toast.id = 'copyToast';
+    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#28a745;color:white;padding:12px 24px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:9999;font-size:14px;animation:fadeInUp 0.3s ease;';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    // Elimină după 2 secunde
+    setTimeout(function() {
+        toast.style.animation = 'fadeOutDown 0.3s ease';
+        setTimeout(function() {
+            toast.remove();
+        }, 300);
+    }, 2000);
+}

@@ -226,9 +226,20 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             background: var(--secondary-color);
         }
 
+        .table td, .table th {
+            vertical-align: middle !important;
+        }
+
         .table-actions {
-            display: flex;
-            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .table-actions .btn {
+            margin-right: 4px;
+        }
+
+        .table-actions .btn:last-child {
+            margin-right: 0;
         }
 
         .badge-status {
