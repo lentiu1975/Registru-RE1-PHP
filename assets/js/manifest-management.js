@@ -44,9 +44,14 @@ async function loadManifestsView() {
                         <label class="form-label small text-muted mb-1">Data sfârșit</label>
                         <input type="date" id="date-to" class="form-control">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <button onclick="searchManifests()" class="btn btn-primary w-100">
                             <i class="bi bi-search"></i> Caută
+                        </button>
+                    </div>
+                    <div class="col-md-1">
+                        <button onclick="resetSearch()" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-x-circle"></i> Resetează
                         </button>
                     </div>
                 </div>
@@ -238,6 +243,26 @@ async function searchManifests() {
         year_id: yearIdValue
     };
 
+    await loadManifests(1);
+}
+
+async function resetSearch() {
+    // Resetează câmpurile de căutare
+    const searchInput = document.getElementById('manifest-search');
+    const dateFromInput = document.getElementById('date-from');
+    const dateToInput = document.getElementById('date-to');
+    const yearSelect = document.getElementById('manifest-year');
+
+    if (searchInput) searchInput.value = '';
+    if (dateFromInput) dateFromInput.value = '';
+    if (dateToInput) dateToInput.value = '';
+
+    // Resetează filtrele păstrând doar anul selectat
+    searchFilters = {
+        year_id: yearSelect?.value || ''
+    };
+
+    // Reîncarcă manifestele
     await loadManifests(1);
 }
 
