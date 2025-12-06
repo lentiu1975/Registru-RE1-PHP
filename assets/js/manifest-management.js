@@ -103,6 +103,8 @@ async function loadManifests(page = 1) {
             ...searchFilters
         });
 
+        console.log('Loading manifests with URL:', 'api/manifests/list.php?' + params.toString());
+
         const response = await fetch('api/manifests/list.php?' + params);
         const data = await response.json();
 
@@ -215,11 +217,25 @@ async function loadManifests(page = 1) {
 }
 
 async function searchManifests() {
+    console.log('searchManifests called');
+
+    const searchValue = document.getElementById('manifest-search')?.value || '';
+    const dateFromValue = document.getElementById('date-from')?.value || '';
+    const dateToValue = document.getElementById('date-to')?.value || '';
+    const yearIdValue = document.getElementById('manifest-year')?.value || '';
+
+    console.log('Search filters:', {
+        search: searchValue,
+        date_from: dateFromValue,
+        date_to: dateToValue,
+        year_id: yearIdValue
+    });
+
     searchFilters = {
-        search: document.getElementById('manifest-search').value,
-        date_from: document.getElementById('date-from').value,
-        date_to: document.getElementById('date-to').value,
-        year_id: document.getElementById('manifest-year').value
+        search: searchValue,
+        date_from: dateFromValue,
+        date_to: dateToValue,
+        year_id: yearIdValue
     };
 
     await loadManifests(1);
