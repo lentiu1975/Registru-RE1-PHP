@@ -73,10 +73,10 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             top: 0;
             left: 0;
             height: 100vh;
-            width: 260px;
+            width: 240px;
             background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
-            padding: 20px 0;
+            padding: 10px 0;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
             z-index: 1000;
             display: flex;
@@ -84,20 +84,20 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         }
 
         .sidebar-brand {
-            padding: 0 20px 20px;
+            padding: 0 15px 10px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
 
         .sidebar-brand h4 {
             margin: 0;
-            font-size: 20px;
+            font-size: 17px;
             font-weight: 600;
         }
 
         .sidebar-brand small {
             opacity: 0.8;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .sidebar-nav {
@@ -109,26 +109,27 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         }
 
         .sidebar-footer {
-            padding: 15px 20px;
+            padding: 8px 15px;
             border-top: 1px solid rgba(255,255,255,0.1);
             margin-top: auto;
         }
 
         .sidebar-footer .user-box {
-            padding: 12px;
+            padding: 8px;
             background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            margin-bottom: 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
         }
 
         .sidebar-footer .user-box .user-label {
-            font-size: 11px;
+            font-size: 10px;
             opacity: 0.8;
         }
 
         .sidebar-footer .user-box .user-name {
             font-weight: 600;
-            margin-top: 3px;
+            margin-top: 2px;
+            font-size: 13px;
         }
 
         .sidebar-nav-item {
@@ -138,11 +139,12 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         .sidebar-nav-link {
             display: flex;
             align-items: center;
-            padding: 12px 20px;
+            padding: 10px 18px;
             color: rgba(255,255,255,0.8);
             text-decoration: none;
-            transition: all 0.3s;
+            transition: all 0.2s;
             border-left: 3px solid transparent;
+            font-size: 15px;
         }
 
         .sidebar-nav-link:hover,
@@ -155,11 +157,11 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         .sidebar-nav-link i {
             width: 24px;
             margin-right: 12px;
-            font-size: 18px;
+            font-size: 17px;
         }
 
         .main-content {
-            margin-left: 260px;
+            margin-left: 240px;
             padding: 20px;
         }
 
@@ -287,6 +289,12 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 <a href="#manifests" class="sidebar-nav-link" data-tab="manifests">
                     <i class="bi bi-file-earmark-text"></i>
                     <span>Manifeste</span>
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="#containers-view" class="sidebar-nav-link" data-tab="containers-view">
+                    <i class="bi bi-box-seam"></i>
+                    <span>Containere</span>
                 </a>
             </li>
             <?php if ($currentUser['is_admin']): ?>
@@ -714,29 +722,44 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 </div>
 
                 <!-- Filtre și Căutare -->
-                <div class="row mb-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Filtru Tip Container</label>
-                        <select class="form-select" id="filterTipContainer" onchange="loadContainerTypes()">
-                            <option value="">Toate tipurile</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Filtru Poză</label>
-                        <select class="form-select" id="filterContainerImage" onchange="loadContainerTypes()">
-                            <option value="">Toate</option>
-                            <option value="with">Cu poză</option>
-                            <option value="without">Fără poză</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Căutare</label>
-                        <input type="text" class="form-control" id="searchContainerType" placeholder="Caută model..." onkeyup="debounceContainerSearch()">
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button class="btn btn-outline-secondary" onclick="resetContainerFilters()">
-                            <i class="bi bi-x-circle"></i> Resetează
-                        </button>
+                <div class="card mb-3">
+                    <div class="card-body py-2">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">Tip Container</label>
+                                <select class="form-select form-select-sm" id="filterTipContainer" onchange="loadContainerTypes(1)">
+                                    <option value="">Toate tipurile</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">Poză</label>
+                                <select class="form-select form-select-sm" id="filterContainerImage" onchange="loadContainerTypes(1)">
+                                    <option value="">Toate</option>
+                                    <option value="with">Cu poză</option>
+                                    <option value="without">Fără poză</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1">Căutare</label>
+                                <input type="text" class="form-control form-control-sm" id="searchContainerType" placeholder="Caută model..." onkeyup="debounceContainerSearch()">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">Pe pagină</label>
+                                <select class="form-select form-select-sm" id="containerTypesPerPageSelect" onchange="changeContainerTypesPerPage()">
+                                    <option value="50" selected>50</option>
+                                    <option value="100">100</option>
+                                    <option value="200">200</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex gap-1">
+                                <button class="btn btn-primary btn-sm flex-grow-1" onclick="loadContainerTypes(1)">
+                                    <i class="bi bi-search"></i> Caută
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="resetContainerFilters()">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -803,10 +826,30 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             </div>
         </div>
 
+        <!-- Containers View Tab -->
+        <div id="containers-view-tab" class="tab-pane-content" style="display: none;">
+            <div class="tab-content-section">
+                <h5 class="mb-3">Vizualizare Containere</h5>
+                <div id="containers-view-container">
+                    <p class="text-center text-muted">Se incarca...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Import Logs Tab -->
         <div id="import-logs-tab" class="tab-pane-content" style="display: none;">
             <div class="tab-content-section">
-                <h5 class="mb-3">Istoric Import</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5><i class="bi bi-clock-history"></i> Istoric Import</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label small mb-0">Pe pagină:</label>
+                        <select class="form-select form-select-sm" id="logsPerPageSelect" style="width:80px" onchange="changeLogsPerPage()">
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                        </select>
+                    </div>
+                </div>
                 <div id="logs-table-container">
                     <p class="text-center text-muted">Se încarcă...</p>
                 </div>
@@ -1283,12 +1326,288 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 case 'export-data':
                     loadExportOptions();
                     break;
+                case 'containers-view':
+                    loadContainersView();
+                    break;
                 case 'import-logs':
                     loadImportLogs();
                     break;
                 case 'backup-restore':
                     loadBackups();
                     break;
+            }
+        }
+
+        // =============================================
+        // MANIFESTE - VIZUALIZARE CU PAGINARE
+        // =============================================
+        let manifestsCurrentPage = 1;
+        let manifestsPerPage = 50;
+        let manifestsFilters = {};
+
+        async function loadManifestsView() {
+            const container = document.getElementById('manifests-view-container');
+
+            // Prima încărcare - afișează formular de filtre
+            if (!container.querySelector('#manifestsFiltersForm')) {
+                // Încarcă anii disponibili
+                let yearsHtml = '';
+                try {
+                    const yearsResp = await fetch('api/available_years.php');
+                    const yearsData = await yearsResp.json();
+                    const years = yearsData.data || [];
+                    const activeYearId = years.find(y => y.is_active == 1)?.id || '';
+
+                    yearsHtml = years.map(y =>
+                        `<option value="${y.id}" ${y.id == activeYearId ? 'selected' : ''}>${y.year} (${y.count} containere)</option>`
+                    ).join('');
+
+                    // Setează filtrul implicit pe anul activ
+                    if (activeYearId) {
+                        manifestsFilters.year_id = activeYearId;
+                    }
+                } catch (e) {
+                    yearsHtml = `<option value="">${new Date().getFullYear()}</option>`;
+                }
+
+                container.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="bi bi-file-earmark-text"></i> Gestionare Manifeste</h5>
+                    </div>
+
+                    <form id="manifestsFiltersForm" class="card mb-3">
+                        <div class="card-body py-2">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">An</label>
+                                    <select id="filterManifestYear" class="form-select form-select-sm" onchange="loadManifestsData(1)">
+                                        ${yearsHtml}
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Nr. Manifest</label>
+                                    <input type="text" id="filterManifestNumber" class="form-control form-control-sm" placeholder="Caută...">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">De la</label>
+                                    <input type="date" id="filterManifestDateFrom" class="form-control form-control-sm">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Până la</label>
+                                    <input type="date" id="filterManifestDateTo" class="form-control form-control-sm">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Pe pagină</label>
+                                    <select id="manifestsPerPageSelect" class="form-select form-select-sm" onchange="changeManifestsPerPage()">
+                                        <option value="50" selected>50</option>
+                                        <option value="100">100</option>
+                                        <option value="200">200</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex gap-1">
+                                    <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                        <i class="bi bi-search"></i> Caută
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetManifestsFilters()">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div id="manifests-results-wrapper">
+                        <p class="text-center text-muted">Se încarcă...</p>
+                    </div>
+                    <div id="manifests-pagination"></div>
+                `;
+
+                // Handler pentru form submit
+                document.getElementById('manifestsFiltersForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    loadManifestsData(1);
+                });
+
+                // Handler pentru Enter în câmpul de căutare
+                document.getElementById('filterManifestNumber').addEventListener('keyup', function(e) {
+                    if (e.key === 'Enter') loadManifestsData(1);
+                });
+            }
+
+            loadManifestsData(1);
+        }
+
+        function changeManifestsPerPage() {
+            manifestsPerPage = parseInt(document.getElementById('manifestsPerPageSelect').value);
+            loadManifestsData(1);
+        }
+
+        async function loadManifestsData(page = 1) {
+            manifestsCurrentPage = page;
+            const wrapper = document.getElementById('manifests-results-wrapper');
+            const paginationDiv = document.getElementById('manifests-pagination');
+
+            wrapper.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+
+            // Colectează filtrele
+            const yearId = document.getElementById('filterManifestYear')?.value || '';
+            const search = document.getElementById('filterManifestNumber')?.value || '';
+            const dateFrom = document.getElementById('filterManifestDateFrom')?.value || '';
+            const dateTo = document.getElementById('filterManifestDateTo')?.value || '';
+
+            // Construiește URL
+            let url = `api/manifests/list.php?page=${page}&limit=${manifestsPerPage}`;
+            if (yearId) url += `&year_id=${yearId}`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+            if (dateFrom) url += `&date_from=${dateFrom}`;
+            if (dateTo) url += `&date_to=${dateTo}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!data.success) {
+                    wrapper.innerHTML = `<div class="alert alert-danger">${data.error || 'Eroare la încărcare'}</div>`;
+                    return;
+                }
+
+                const manifests = data.manifests || [];
+                const pagination = data.pagination || {};
+
+                if (manifests.length === 0) {
+                    wrapper.innerHTML = '<div class="alert alert-info">Nu există manifeste pentru criteriile selectate.</div>';
+                    paginationDiv.innerHTML = '';
+                    return;
+                }
+
+                // Calculează indexul de start pentru numerotare
+                const startIndex = ((pagination.page - 1) * pagination.limit) + 1;
+
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Total: ${pagination.total} manifeste | Pagina ${pagination.page} din ${pagination.total_pages}</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:50px">#</th>
+                                    <th>Nr. Manifest</th>
+                                    <th>Data Sosire</th>
+                                    <th>Navă</th>
+                                    <th>Containere</th>
+                                    <th>Acțiuni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                manifests.forEach((m, idx) => {
+                    const arrivalDate = m.arrival_date ? formatDate(m.arrival_date) : '-';
+                    html += `
+                        <tr>
+                            <td class="text-muted">${startIndex + idx}</td>
+                            <td><strong>${escapeHtml(m.manifest_number || '-')}</strong></td>
+                            <td>${arrivalDate}</td>
+                            <td>${escapeHtml(m.ship_name || '-')}</td>
+                            <td><span class="badge bg-info">${m.container_count || 0}</span></td>
+                            <td class="table-actions">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewManifestDetails('${escapeHtml(m.manifest_number)}')" title="Vizualizează">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteManifest('${escapeHtml(m.manifest_number)}')" title="Șterge">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+                wrapper.innerHTML = html;
+
+                // Paginare cu butoane Prima/Ultima
+                renderManifestsPagination(pagination, paginationDiv);
+
+            } catch (error) {
+                wrapper.innerHTML = `<div class="alert alert-danger">Eroare: ${error.message}</div>`;
+                paginationDiv.innerHTML = '';
+            }
+        }
+
+        function renderManifestsPagination(pagination, paginationDiv) {
+            if (pagination.total_pages > 1) {
+                let pagHtml = '<nav><ul class="pagination pagination-sm justify-content-center">';
+
+                // First page
+                pagHtml += `<li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadManifestsData(1); return false;" title="Prima pagină">«</a>
+                </li>`;
+
+                // Previous
+                pagHtml += `<li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadManifestsData(${pagination.page - 1}); return false;">Anterior</a>
+                </li>`;
+
+                // Page numbers (show max 10 pages)
+                const startPage = Math.max(1, pagination.page - 4);
+                const endPage = Math.min(pagination.total_pages, startPage + 9);
+
+                for (let i = startPage; i <= endPage; i++) {
+                    pagHtml += `<li class="page-item ${i === pagination.page ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadManifestsData(${i}); return false;">${i}</a>
+                    </li>`;
+                }
+
+                // Next
+                pagHtml += `<li class="page-item ${pagination.page === pagination.total_pages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadManifestsData(${pagination.page + 1}); return false;">Urmator</a>
+                </li>`;
+
+                // Last page
+                pagHtml += `<li class="page-item ${pagination.page === pagination.total_pages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadManifestsData(${pagination.total_pages}); return false;" title="Ultima pagină">»</a>
+                </li>`;
+
+                pagHtml += '</ul></nav>';
+                paginationDiv.innerHTML = pagHtml;
+            } else {
+                paginationDiv.innerHTML = '';
+            }
+        }
+
+        function resetManifestsFilters() {
+            document.getElementById('filterManifestNumber').value = '';
+            document.getElementById('filterManifestDateFrom').value = '';
+            document.getElementById('filterManifestDateTo').value = '';
+            // Nu resetăm anul - păstrăm anul activ
+            loadManifestsData(1);
+        }
+
+        async function viewManifestDetails(manifestNumber) {
+            // Deschide în pagina principală
+            window.open(`index.php?search=${encodeURIComponent(manifestNumber)}`, '_blank');
+        }
+
+        async function deleteManifest(manifestNumber) {
+            if (!confirm(`Sigur doriți să ștergeți manifestul ${manifestNumber} și toate containerele asociate?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`api/manifests/delete.php?manifest=${encodeURIComponent(manifestNumber)}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Manifest șters cu succes!');
+                    loadManifestsData(manifestsCurrentPage);
+                } else {
+                    alert('Eroare: ' + (result.error || 'Nu s-a putut șterge'));
+                }
+            } catch (error) {
+                alert('Eroare: ' + error.message);
             }
         }
 
@@ -2642,32 +2961,40 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         // TIPURI CONTAINERE MANAGEMENT
         // =============================================
         let containerSearchTimeout = null;
+        let containerTypesCurrentPage = 1;
+        let containerTypesPerPage = 50;
 
         function debounceContainerSearch() {
             clearTimeout(containerSearchTimeout);
-            containerSearchTimeout = setTimeout(() => loadContainerTypes(), 300);
+            containerSearchTimeout = setTimeout(() => loadContainerTypes(1), 300);
+        }
+
+        function changeContainerTypesPerPage() {
+            containerTypesPerPage = parseInt(document.getElementById('containerTypesPerPageSelect').value);
+            loadContainerTypes(1);
         }
 
         function resetContainerFilters() {
             document.getElementById('filterTipContainer').value = '';
             document.getElementById('filterContainerImage').value = '';
             document.getElementById('searchContainerType').value = '';
-            loadContainerTypes();
+            loadContainerTypes(1);
         }
 
-        async function loadContainerTypes() {
+        async function loadContainerTypes(page = 1) {
+            containerTypesCurrentPage = page;
             const container = document.getElementById('container-types-table-container');
             container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
 
-            // Construiește URL cu parametri de filtrare
+            // Construiește URL cu parametri de filtrare și paginare
             const tipFilter = document.getElementById('filterTipContainer').value;
             const imageFilter = document.getElementById('filterContainerImage').value;
             const search = document.getElementById('searchContainerType').value;
 
-            let url = 'api/container_types.php?';
-            if (tipFilter) url += `tip_container=${encodeURIComponent(tipFilter)}&`;
-            if (imageFilter) url += `has_image=${encodeURIComponent(imageFilter)}&`;
-            if (search) url += `search=${encodeURIComponent(search)}&`;
+            let url = `api/container_types.php?page=${page}&per_page=${containerTypesPerPage}`;
+            if (tipFilter) url += `&tip_container=${encodeURIComponent(tipFilter)}`;
+            if (imageFilter) url += `&has_image=${encodeURIComponent(imageFilter)}`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
 
             try {
                 const response = await fetch(url);
@@ -2679,6 +3006,7 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 }
 
                 const types = result.data || [];
+                const pagination = result.pagination || {};
 
                 // Populează dropdown-ul de filtrare (doar prima dată sau când e gol)
                 const filterSelect = document.getElementById('filterTipContainer');
@@ -2696,13 +3024,18 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     return;
                 }
 
+                // Calculează indexul de start pentru numerotare
+                const startIndex = ((pagination.page - 1) * pagination.per_page) + 1;
+
                 let html = `
-                    <p class="text-muted mb-2">Total: ${types.length} tipuri de containere</p>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Total: ${pagination.total} tipuri | Pagina ${pagination.page} din ${pagination.total_pages}</span>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-sm table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th>ID</th>
+                                    <th style="width:50px">#</th>
                                     <th>Imagine</th>
                                     <th>Model Container</th>
                                     <th>Tip Container</th>
@@ -2713,13 +3046,13 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                             <tbody>
                 `;
 
-                types.forEach(t => {
+                types.forEach((t, idx) => {
                     const imgSrc = t.imagine || 'assets/images/container_model.png';
                     const img = `<img src="${escapeHtml(imgSrc)}" width="60" height="40" style="object-fit: cover; border-radius: 4px;">`;
 
                     html += `
                         <tr>
-                            <td>${t.id}</td>
+                            <td class="text-muted">${startIndex + idx}</td>
                             <td>${img}</td>
                             <td><strong>${escapeHtml(t.model_container || '-')}</strong></td>
                             <td><span class="badge bg-secondary">${escapeHtml(t.tip_container || '-')}</span></td>
@@ -2737,6 +3070,44 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 });
 
                 html += '</tbody></table></div>';
+
+                // Adaugă paginarea
+                if (pagination.total_pages > 1) {
+                    html += '<nav><ul class="pagination pagination-sm justify-content-center">';
+
+                    // First page
+                    html += `<li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="loadContainerTypes(1); return false;" title="Prima pagină">«</a>
+                    </li>`;
+
+                    // Previous
+                    html += `<li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="loadContainerTypes(${pagination.page - 1}); return false;">Anterior</a>
+                    </li>`;
+
+                    // Page numbers
+                    const startPage = Math.max(1, pagination.page - 4);
+                    const endPage = Math.min(pagination.total_pages, startPage + 9);
+
+                    for (let i = startPage; i <= endPage; i++) {
+                        html += `<li class="page-item ${i === pagination.page ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="loadContainerTypes(${i}); return false;">${i}</a>
+                        </li>`;
+                    }
+
+                    // Next
+                    html += `<li class="page-item ${pagination.page === pagination.total_pages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="loadContainerTypes(${pagination.page + 1}); return false;">Urmator</a>
+                    </li>`;
+
+                    // Last page
+                    html += `<li class="page-item ${pagination.page === pagination.total_pages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="loadContainerTypes(${pagination.total_pages}); return false;" title="Ultima pagină">»</a>
+                    </li>`;
+
+                    html += '</ul></nav>';
+                }
+
                 container.innerHTML = html;
 
             } catch (error) {
@@ -3333,12 +3704,23 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     <!-- Import Standard -->
                     <div class="col-md-6 mb-4">
                         <div class="card h-100">
-                            <div class="card-header bg-primary text-white">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0"><i class="bi bi-file-earmark-excel"></i> Import Standard</h5>
+                                <a href="api/download_model.php" class="btn btn-sm btn-light" title="Descarcă fișierul model Excel">
+                                    <i class="bi bi-download"></i> Model
+                                </a>
                             </div>
                             <div class="card-body">
                                 <p class="text-muted">Importă date folosind formatul Excel predefinit.</p>
-                                <p class="small">Coloane așteptate: Număr Manifest, Container, Tip Container, Greutate, Descriere Marfă, etc.</p>
+
+                                <div class="alert alert-info py-2 small mb-3">
+                                    <strong><i class="bi bi-info-circle"></i> Coloane model (A-O):</strong><br>
+                                    <span class="text-muted">
+                                        A: numar manifest | B: numar permis | C: numar pozitie | D: cerere operatiune | E: data inregistrare |
+                                        F: container | G: tip container | H: numar colete | I: greutate bruta | J: descriere marfa |
+                                        K: linie maritima | L: tip operatiune | M: numar sumara | N: nume nava | O: pavilion nava
+                                    </span>
+                                </div>
 
                                 <form id="standardImportForm" enctype="multipart/form-data">
                                     <div class="mb-3">
@@ -3607,9 +3989,10 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             } catch (e) { console.log('Years error:', e); }
 
             const currentYear = new Date().getFullYear();
-            // Primul an din listă este selectat implicit (cel mai recent)
-            const yearsOptions = years.map((y, idx) =>
-                `<option value="${y.year}" ${idx === 0 ? 'selected' : ''}>${y.year} (${y.count} înregistrări)</option>`
+            const activeYear = <?= $activeYear ? $activeYear['year'] : 'null' ?>;
+            // Selectează implicit anul activ din baza de date
+            const yearsOptions = years.map((y) =>
+                `<option value="${y.year}" ${y.year == activeYear ? 'selected' : ''}>${y.year} (${y.count} înregistrări)</option>`
             ).join('');
 
             container.innerHTML = `
@@ -3627,8 +4010,12 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                                 </div>
                                 <p class="small text-muted mb-2">Include: colorare duplicate (galben) și observații (roșu)</p>
                                 <button class="btn btn-success" onclick="exportByYear()">
-                                    <i class="bi bi-file-earmark-excel"></i> Export Excel (XLSX)
+                                    <i class="bi bi-file-earmark-excel"></i> Export XLSX
                                 </button>
+                                <button class="btn btn-outline-success" onclick="exportByYearXLS()">
+                                    <i class="bi bi-file-earmark-spreadsheet"></i> Export XLS
+                                </button>
+                                <p class="small text-muted mt-2 mb-0"><i class="bi bi-info-circle"></i> XLS: multiple sheet-uri pentru date mari (max 64000 rânduri/sheet)</p>
                             </div>
                         </div>
                     </div>
@@ -3636,10 +4023,24 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                         <div class="card">
                             <div class="card-body">
                                 <h5 class="card-title">Export per Manifest</h5>
-                                <p class="text-muted">Selectează un manifest pentru export</p>
-                                <select id="exportManifestSelect" class="form-select mb-3">
-                                    <option value="">Se încarcă...</option>
-                                </select>
+                                <p class="text-muted">Selectează anul și manifestul pentru export</p>
+                                <div class="mb-3">
+                                    <label for="exportManifestYearSelect" class="form-label">Selectează anul:</label>
+                                    <select id="exportManifestYearSelect" class="form-select" onchange="loadManifestsForYear()">
+                                        ${yearsOptions || `<option value="${currentYear}">${currentYear}</option>`}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="exportManifestSearch" class="form-label">Caută manifest:</label>
+                                    <input type="text" id="exportManifestSearch" class="form-control" placeholder="Scrie numărul manifestului..." oninput="filterManifests()">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="exportManifestSelect" class="form-label">Selectează manifestul:</label>
+                                    <select id="exportManifestSelect" class="form-select" size="8" style="height: auto;">
+                                        <option value="">Se încarcă...</option>
+                                    </select>
+                                    <small class="text-muted" id="manifestCount"></small>
+                                </div>
                                 <button class="btn btn-success" onclick="exportManifestFromSelect('xls')">
                                     <i class="bi bi-file-earmark-excel"></i> Export Excel
                                 </button>
@@ -3649,21 +4050,87 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 </div>
             `;
 
-            // Încarcă lista de manifeste (folosește list.php care grupează și elimină duplicatele)
+            // Încarcă lista de manifeste pentru anul selectat implicit
+            loadManifestsForYear();
+        }
+
+        // Variabilă globală pentru a stoca manifestele încărcate
+        let allManifests = [];
+
+        async function loadManifestsForYear() {
+            const year = document.getElementById('exportManifestYearSelect').value;
+            const select = document.getElementById('exportManifestSelect');
+            const searchInput = document.getElementById('exportManifestSearch');
+            const countLabel = document.getElementById('manifestCount');
+
+            select.innerHTML = '<option value="">Se încarcă...</option>';
+            searchInput.value = '';
+            countLabel.textContent = '';
+
             try {
-                const response = await fetch('api/manifests/list.php?page=1&limit=1000');
+                const response = await fetch('api/manifests/list.php?page=1&limit=1000&year=' + year);
                 const result = await response.json();
-                const select = document.getElementById('exportManifestSelect');
 
                 if (result.manifests && result.manifests.length > 0) {
-                    select.innerHTML = '<option value="">-- Selectează Manifest --</option>' +
-                        result.manifests.map(m => `<option value="${escapeHtml(m.manifest_number)}">${escapeHtml(m.manifest_number)} (${m.container_count || 0} containere)</option>`).join('');
+                    // Sortează manifestele numeric (descrescător - cele mai noi primele)
+                    allManifests = result.manifests.sort((a, b) => {
+                        const numA = parseInt(a.manifest_number) || 0;
+                        const numB = parseInt(b.manifest_number) || 0;
+                        return numB - numA;
+                    });
+                    renderManifests(allManifests);
+                    countLabel.textContent = allManifests.length + ' manifeste disponibile';
                 } else {
-                    select.innerHTML = '<option value="">Nu există manifeste</option>';
+                    allManifests = [];
+                    select.innerHTML = '<option value="">Nu există manifeste pentru ' + year + '</option>';
+                    countLabel.textContent = '';
                 }
             } catch (e) {
-                document.getElementById('exportManifestSelect').innerHTML = '<option value="">Eroare la încărcare</option>';
+                allManifests = [];
+                select.innerHTML = '<option value="">Eroare la încărcare</option>';
+                countLabel.textContent = '';
             }
+        }
+
+        function renderManifests(manifests) {
+            const select = document.getElementById('exportManifestSelect');
+            if (manifests.length > 0) {
+                select.innerHTML = manifests.map(m =>
+                    `<option value="${escapeHtml(m.manifest_number)}">${escapeHtml(m.manifest_number)} (${m.container_count || 0} containere)</option>`
+                ).join('');
+                // Selectează primul element automat
+                select.selectedIndex = 0;
+            } else {
+                select.innerHTML = '<option value="">Niciun manifest găsit</option>';
+            }
+        }
+
+        function filterManifests() {
+            const searchTerm = document.getElementById('exportManifestSearch').value.trim().toLowerCase();
+            const countLabel = document.getElementById('manifestCount');
+
+            if (!searchTerm) {
+                renderManifests(allManifests);
+                countLabel.textContent = allManifests.length + ' manifeste disponibile';
+                return;
+            }
+
+            // Filtrează manifestele care conțin termenul de căutare
+            const filtered = allManifests.filter(m =>
+                m.manifest_number.toLowerCase().includes(searchTerm)
+            );
+
+            // Sortează rezultatele: cele care încep cu termenul primele
+            filtered.sort((a, b) => {
+                const aStarts = a.manifest_number.toLowerCase().startsWith(searchTerm);
+                const bStarts = b.manifest_number.toLowerCase().startsWith(searchTerm);
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+                return parseInt(a.manifest_number) - parseInt(b.manifest_number);
+            });
+
+            renderManifests(filtered);
+            countLabel.textContent = filtered.length + ' din ' + allManifests.length + ' manifeste';
         }
 
         function exportAllData(format) {
@@ -3677,6 +4144,15 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                 return;
             }
             window.open('api/export_by_year.php?year=' + year, '_blank');
+        }
+
+        function exportByYearXLS() {
+            const year = document.getElementById('exportYearSelect').value;
+            if (!year) {
+                alert('Selectează un an!');
+                return;
+            }
+            window.open('api/export_by_year_xls.php?year=' + year, '_blank');
         }
 
         async function exportManifestFromSelect(format) {
@@ -3694,6 +4170,12 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
         // LOG-URI IMPORT
         // =============================================
         let logsCurrentPage = 1;
+        let logsPerPage = 50;
+
+        function changeLogsPerPage() {
+            logsPerPage = parseInt(document.getElementById('logsPerPageSelect').value);
+            loadImportLogs(1);
+        }
 
         async function loadImportLogs(page = 1) {
             logsCurrentPage = page;
@@ -3701,7 +4183,7 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
 
             try {
-                const response = await fetch(`api/import_logs.php?page=${page}`);
+                const response = await fetch(`api/import_logs.php?page=${page}&per_page=${logsPerPage}`);
                 const result = await response.json();
 
                 if (result.error) {
@@ -3717,12 +4199,18 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                     return;
                 }
 
+                // Calculează indexul de start pentru numerotare
+                const startIndex = ((pagination.page - 1) * pagination.per_page) + 1;
+
                 let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Total: ${pagination.total} importuri | Pagina ${pagination.page} din ${pagination.total_pages}</span>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-sm table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th>ID</th>
+                                    <th style="width:50px">#</th>
                                     <th>Data</th>
                                     <th>Utilizator</th>
                                     <th>Fișier</th>
@@ -3734,14 +4222,14 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
                             <tbody>
                 `;
 
-                logs.forEach(log => {
+                logs.forEach((log, idx) => {
                     const createdAt = log.created_at ? formatDateTime(log.created_at) : '-';
                     const statusClass = log.rows_failed > 0 ? 'warning' : 'success';
                     const statusText = log.rows_failed > 0 ? 'Parțial' : 'Complet';
 
                     html += `
                         <tr>
-                            <td>${log.id}</td>
+                            <td class="text-muted">${startIndex + idx}</td>
                             <td>${createdAt}</td>
                             <td>${escapeHtml(log.username || '-')}</td>
                             <td>${escapeHtml(log.filename || '-')}</td>
@@ -3754,26 +4242,40 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
 
                 html += '</tbody></table></div>';
 
-                // Paginare
+                // Paginare cu butoane Prima/Ultima
                 if (pagination.total_pages > 1) {
-                    html += '<nav><ul class="pagination justify-content-center">';
-                    html += `<li class="page-item ${logsCurrentPage === 1 ? 'disabled' : ''}">
-                        <a class="page-link" href="#" onclick="loadImportLogs(${logsCurrentPage - 1}); return false;">«</a>
+                    html += '<nav><ul class="pagination pagination-sm justify-content-center">';
+
+                    // First page
+                    html += `<li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="loadImportLogs(1); return false;" title="Prima pagină">«</a>
                     </li>`;
 
-                    for (let i = 1; i <= pagination.total_pages; i++) {
-                        if (i === 1 || i === pagination.total_pages || Math.abs(i - logsCurrentPage) <= 2) {
-                            html += `<li class="page-item ${i === logsCurrentPage ? 'active' : ''}">
-                                <a class="page-link" href="#" onclick="loadImportLogs(${i}); return false;">${i}</a>
-                            </li>`;
-                        } else if (Math.abs(i - logsCurrentPage) === 3) {
-                            html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                        }
+                    // Previous
+                    html += `<li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="loadImportLogs(${pagination.page - 1}); return false;">Anterior</a>
+                    </li>`;
+
+                    // Page numbers
+                    const startPage = Math.max(1, pagination.page - 4);
+                    const endPage = Math.min(pagination.total_pages, startPage + 9);
+
+                    for (let i = startPage; i <= endPage; i++) {
+                        html += `<li class="page-item ${i === pagination.page ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="loadImportLogs(${i}); return false;">${i}</a>
+                        </li>`;
                     }
 
-                    html += `<li class="page-item ${logsCurrentPage === pagination.total_pages ? 'disabled' : ''}">
-                        <a class="page-link" href="#" onclick="loadImportLogs(${logsCurrentPage + 1}); return false;">»</a>
+                    // Next
+                    html += `<li class="page-item ${pagination.page === pagination.total_pages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="loadImportLogs(${pagination.page + 1}); return false;">Urmator</a>
                     </li>`;
+
+                    // Last page
+                    html += `<li class="page-item ${pagination.page === pagination.total_pages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="loadImportLogs(${pagination.total_pages}); return false;" title="Ultima pagină">»</a>
+                    </li>`;
+
                     html += '</ul></nav>';
                 }
 
@@ -3782,6 +4284,268 @@ $recentImport = dbFetchOne("SELECT * FROM import_logs ORDER BY created_at DESC L
             } catch (error) {
                 container.innerHTML = `<div class="alert alert-danger">Eroare: ${error.message}</div>`;
             }
+        }
+
+        // =============================================
+        // CONTAINERE - VIZUALIZARE
+        // =============================================
+        let containersCurrentPage = 1;
+        let containersFilters = {};
+
+        async function loadContainersView(page = 1) {
+            containersCurrentPage = page;
+            const container = document.getElementById('containers-view-container');
+
+            // Prima incărcare - afișează formular de filtre
+            if (page === 1 && !container.querySelector('#containersFiltersForm')) {
+                // Obține anii disponibili
+                let yearsOptions = '';
+                try {
+                    const yearsResponse = await fetch('api/available_years.php');
+                    const yearsResult = await yearsResponse.json();
+                    if (yearsResult.data) {
+                        yearsOptions = yearsResult.data.map(y =>
+                            `<option value="${y.id}" ${y.is_active == 1 ? 'selected' : ''}>${y.year}</option>`
+                        ).join('') + '<option value="">Toți anii</option>';
+                    }
+                } catch (e) { console.log('Years error:', e); }
+
+                container.innerHTML = `
+                    <form id="containersFiltersForm" class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <label class="form-label small">Container</label>
+                                <input type="text" id="filterContainer" class="form-control form-control-sm" placeholder="TGBU...">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small">Manifest</label>
+                                <input type="text" id="filterManifest" class="form-control form-control-sm" placeholder="Nr. manifest">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small">An</label>
+                                <select id="filterYearId" class="form-select form-select-sm">
+                                    ${yearsOptions}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small">De la data</label>
+                                <input type="date" id="filterDateFrom" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small">Pana la data</label>
+                                <input type="date" id="filterDateTo" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small">Linie</label>
+                                <input type="text" id="filterLine" class="form-control form-control-sm" placeholder="MSC, HLL...">
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-4">
+                                <label class="form-label small">Descriere marfa</label>
+                                <input type="text" id="filterGoods" class="form-control form-control-sm" placeholder="Cauta in descriere...">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small">Rezultate/pagina</label>
+                                <select id="filterPerPage" class="form-select form-select-sm">
+                                    <option value="50">50</option>
+                                    <option value="100" selected>100</option>
+                                    <option value="200">200</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-search"></i> Cauta
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetContainersFilters()">
+                                    <i class="bi bi-x-circle"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="containersResultsInfo" class="mb-2 text-muted small"></div>
+                    <div id="containersTableWrapper" style="overflow-x: auto;">
+                        <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                    <div id="containersPagination" class="mt-3"></div>
+                `;
+
+                // Adaugă event listener pentru formular
+                document.getElementById('containersFiltersForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    loadContainersData(1);
+                });
+
+                // Încarcă datele implicit
+                loadContainersData(1);
+            } else if (page > 1) {
+                loadContainersData(page);
+            }
+        }
+
+        async function loadContainersData(page = 1) {
+            const wrapper = document.getElementById('containersTableWrapper');
+            wrapper.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+
+            // Colectează filtrele
+            const params = new URLSearchParams();
+            params.set('page', page);
+            params.set('per_page', document.getElementById('filterPerPage')?.value || 100);
+
+            const container = document.getElementById('filterContainer')?.value;
+            const manifest = document.getElementById('filterManifest')?.value;
+            const dateFrom = document.getElementById('filterDateFrom')?.value;
+            const dateTo = document.getElementById('filterDateTo')?.value;
+            const line = document.getElementById('filterLine')?.value;
+            const goods = document.getElementById('filterGoods')?.value;
+            const yearId = document.getElementById('filterYearId')?.value;
+
+            if (container) params.set('container', container);
+            if (manifest) params.set('manifest', manifest);
+            if (dateFrom) params.set('date_from', dateFrom);
+            if (dateTo) params.set('date_to', dateTo);
+            if (line) params.set('line', line);
+            if (goods) params.set('goods', goods);
+            if (yearId) params.set('year_id', yearId);
+
+            try {
+                const response = await fetch('api/containers/list.php?' + params.toString());
+                const result = await response.json();
+
+                if (result.success) {
+                    renderContainersTable(result.entries, result.pagination);
+                } else {
+                    wrapper.innerHTML = `<div class="alert alert-warning">Eroare: ${result.error || 'Necunoscuta'}</div>`;
+                }
+            } catch (error) {
+                wrapper.innerHTML = `<div class="alert alert-danger">Eroare de retea: ${error.message}</div>`;
+            }
+        }
+
+        function renderContainersTable(entries, pagination) {
+            const wrapper = document.getElementById('containersTableWrapper');
+            const info = document.getElementById('containersResultsInfo');
+            const paginationDiv = document.getElementById('containersPagination');
+
+            if (!entries || entries.length === 0) {
+                wrapper.innerHTML = '<div class="alert alert-info">Nu s-au gasit rezultate pentru filtrele selectate.</div>';
+                info.textContent = '';
+                paginationDiv.innerHTML = '';
+                return;
+            }
+
+            info.textContent = `Afisare ${((pagination.page - 1) * pagination.per_page) + 1} - ${Math.min(pagination.page * pagination.per_page, pagination.total)} din ${pagination.total} rezultate`;
+
+            let html = `
+                <table class="table table-sm table-hover table-bordered" style="font-size: 12px;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Nr.</th>
+                            <th>Nr. Manifest</th>
+                            <th>Nr. Permis</th>
+                            <th>Pozitie</th>
+                            <th>Cerere Op.</th>
+                            <th>Data</th>
+                            <th>Container</th>
+                            <th>Descriere Marfa</th>
+                            <th>Colete</th>
+                            <th>Greutate</th>
+                            <th>Tip Op.</th>
+                            <th>Nava</th>
+                            <th>Pavilion</th>
+                            <th>Nr. Sumara</th>
+                            <th>Linie</th>
+                            <th>Observatii</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            const startIndex = ((pagination.page - 1) * pagination.per_page) + 1;
+            entries.forEach((e, idx) => {
+                // Colorare: galben pentru duplicate, rosu pentru observatii
+                let containerClass = '';
+                if (e.has_observations) {
+                    containerClass = 'table-danger';
+                } else if (e.is_duplicate) {
+                    containerClass = 'table-warning';
+                }
+
+                html += `
+                    <tr>
+                        <td class="text-muted">${startIndex + idx}</td>
+                        <td>${escapeHtml(e.numar_manifest || '-')}</td>
+                        <td>${escapeHtml(e.permit_number || '-')}</td>
+                        <td>${escapeHtml(e.position_number || '-')}</td>
+                        <td>${escapeHtml(e.operation_request || '-')}</td>
+                        <td>${e.data_inregistrare ? formatDate(e.data_inregistrare) : '-'}</td>
+                        <td class="${containerClass}">${escapeHtml(e.container_number || '-')}</td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(e.goods_description || '')}">${escapeHtml(e.goods_description || '-')}</td>
+                        <td class="text-end">${e.packages || '-'}</td>
+                        <td class="text-end">${e.weight || '-'}</td>
+                        <td>${escapeHtml(e.operation_type || '-')}</td>
+                        <td>${escapeHtml(e.ship_name || '-')}</td>
+                        <td>${escapeHtml(e.ship_flag || '-')}</td>
+                        <td>${escapeHtml(e.summary_number || '-')}</td>
+                        <td>${escapeHtml(e.linie_maritima || '-')}</td>
+                        <td class="${e.has_observations ? 'table-danger' : ''}" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(e.observatii || '')}">${escapeHtml(e.observatii || '-')}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            wrapper.innerHTML = html;
+
+            // Paginare
+            if (pagination.total_pages > 1) {
+                let pagHtml = '<nav><ul class="pagination pagination-sm justify-content-center">';
+
+                // First page
+                pagHtml += `<li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadContainersData(1); return false;" title="Prima pagină">«</a>
+                </li>`;
+
+                // Previous
+                pagHtml += `<li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadContainersData(${pagination.page - 1}); return false;">Anterior</a>
+                </li>`;
+
+                // Page numbers (show max 10 pages)
+                const startPage = Math.max(1, pagination.page - 4);
+                const endPage = Math.min(pagination.total_pages, startPage + 9);
+
+                for (let i = startPage; i <= endPage; i++) {
+                    pagHtml += `<li class="page-item ${i === pagination.page ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadContainersData(${i}); return false;">${i}</a>
+                    </li>`;
+                }
+
+                // Next
+                pagHtml += `<li class="page-item ${pagination.page === pagination.total_pages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadContainersData(${pagination.page + 1}); return false;">Urmator</a>
+                </li>`;
+
+                // Last page
+                pagHtml += `<li class="page-item ${pagination.page === pagination.total_pages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadContainersData(${pagination.total_pages}); return false;" title="Ultima pagină">»</a>
+                </li>`;
+
+                pagHtml += '</ul></nav>';
+                paginationDiv.innerHTML = pagHtml;
+            } else {
+                paginationDiv.innerHTML = '';
+            }
+        }
+
+        function resetContainersFilters() {
+            document.getElementById('filterContainer').value = '';
+            document.getElementById('filterManifest').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            document.getElementById('filterLine').value = '';
+            document.getElementById('filterGoods').value = '';
+            // Nu resetăm anul - păstrăm anul activ
+            loadContainersData(1);
         }
 
         // =============================================

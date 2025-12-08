@@ -31,9 +31,22 @@ $search = $_GET['search'] ?? '';
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
 $yearId = $_GET['year_id'] ?? '';
+$year = $_GET['year'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
-$limit = 50;
+$limit = intval($_GET['limit'] ?? 50);
 $offset = ($page - 1) * $limit;
+
+// Dacă s-a trimis anul numeric, găsește ID-ul corespunzător
+if (!empty($year) && empty($yearId)) {
+    $yearStmt = $conn->prepare("SELECT id FROM database_years WHERE year = ?");
+    $yearStmt->bind_param('i', $year);
+    $yearStmt->execute();
+    $yearResult = $yearStmt->get_result();
+    if ($yearRow = $yearResult->fetch_assoc()) {
+        $yearId = $yearRow['id'];
+    }
+    $yearStmt->close();
+}
 
 // Construiește query
 $where = [];

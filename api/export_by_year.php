@@ -166,7 +166,7 @@ function getStyles() {
             <name val="Calibri"/>
         </font>
     </fonts>
-    <fills count="5">
+    <fills count="6">
         <fill><patternFill patternType="none"/></fill>
         <fill><patternFill patternType="gray125"/></fill>
         <fill>
@@ -187,6 +187,12 @@ function getStyles() {
                 <bgColor indexed="64"/>
             </patternFill>
         </fill>
+        <fill>
+            <patternFill patternType="solid">
+                <fgColor rgb="FFDCE6F1"/>
+                <bgColor indexed="64"/>
+            </patternFill>
+        </fill>
     </fills>
     <borders count="2">
         <border>
@@ -203,7 +209,7 @@ function getStyles() {
     <cellStyleXfs count="1">
         <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
     </cellStyleXfs>
-    <cellXfs count="5">
+    <cellXfs count="9">
         <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
         <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
             <alignment horizontal="center" vertical="center" wrapText="1"/>
@@ -211,6 +217,10 @@ function getStyles() {
         <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
         <xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
         <xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
+        <xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
+        <xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
+        <xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
+        <xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
     </cellXfs>
 </styleSheet>';
 }
@@ -292,21 +302,42 @@ function generateSheetData($data, $containerCounts) {
     $sheetXml .= '</row>';
 
     // Data rows
+    // Stiluri:
+    // 2 = alb cu border (manifest impar)
+    // 5 = albastru deschis cu border (manifest par)
+    // 3 = galben (duplicate) - pe alb
+    // 4 = roșu (observații) - pe alb
+    // 6 = galben pe albastru
+    // 7 = roșu pe albastru
+
     $rowNum = 2;
+    $lastManifest = null;
+    $manifestIndex = 0; // pentru alternare culori
+
     foreach ($data as $row) {
         $containerNum = $row['container_number'] ?? '';
         $observatii = $row['observatii'] ?? '';
+        $currentManifest = $row['numar_manifest'] ?? '';
+
+        // Verifică dacă s-a schimbat manifestul
+        if ($currentManifest !== $lastManifest) {
+            $manifestIndex++;
+            $lastManifest = $currentManifest;
+        }
+
+        // Determină dacă rândul e pe fundal alb sau albastru
+        $isBlueBackground = ($manifestIndex % 2 == 0);
+
+        // Stilul de bază pentru rând
+        $baseStyle = $isBlueBackground ? 5 : 2; // 5 = albastru, 2 = alb
 
         // Determină stilul pentru celula container (coloana F)
-        // Style 2 = normal cu border
-        // Style 3 = galben (duplicate)
-        // Style 4 = roșu (observații)
         $hasObservations = strlen(trim($observatii)) >= 5;
         $isDuplicate = isset($containerCounts[$containerNum]) && $containerCounts[$containerNum] > 1;
 
-        $containerStyle = 2; // normal
+        $containerStyle = $baseStyle; // normal (alb sau albastru)
         if ($hasObservations) {
-            $containerStyle = 4; // roșu
+            $containerStyle = 4; // roșu (prioritate maximă)
         } elseif ($isDuplicate) {
             $containerStyle = 3; // galben
         }
@@ -330,14 +361,23 @@ function generateSheetData($data, $containerCounts) {
             $observatii
         ];
 
+        // Coloane numerice: 0=manifest, 1=permis, 2=pozitie, 3=cerere, 7=colete, 8=greutate
+        $numericColumns = [0, 1, 2, 3, 7, 8];
+
         foreach ($values as $colIndex => $value) {
             $col = chr(65 + $colIndex);
-            $strIndex = $stringIndex[(string)$value];
 
-            // Coloana F (index 5) = container, aplică stilul colorat
-            $style = ($colIndex == 5) ? $containerStyle : 2;
+            // Coloana F (index 5) = container, aplică stilul colorat pentru duplicate/observații
+            // Restul coloanelor primesc stilul de bază (alb sau albastru)
+            $style = ($colIndex == 5) ? $containerStyle : $baseStyle;
 
-            $sheetXml .= '<c r="' . $col . $rowNum . '" s="' . $style . '" t="s"><v>' . $strIndex . '</v></c>';
+            // Pentru coloane numerice, scrie valoarea direct (fără shared string)
+            if (in_array($colIndex, $numericColumns) && is_numeric($value) && $value !== '') {
+                $sheetXml .= '<c r="' . $col . $rowNum . '" s="' . $style . '"><v>' . $value . '</v></c>';
+            } else {
+                $strIndex = $stringIndex[(string)$value];
+                $sheetXml .= '<c r="' . $col . $rowNum . '" s="' . $style . '" t="s"><v>' . $strIndex . '</v></c>';
+            }
         }
 
         $sheetXml .= '</row>';

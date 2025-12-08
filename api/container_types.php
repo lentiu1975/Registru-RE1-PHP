@@ -28,47 +28,64 @@ switch ($method) {
             $search = $_GET['search'] ?? '';
             $hasImage = $_GET['has_image'] ?? '';
 
-            // Query cu numărare înregistrări din manifest_entries
-            // model_container din container_types trebuie să se potrivească cu model_container din manifest_entries
-            $sql = "SELECT ct.*,
-                    (SELECT COUNT(*) FROM manifest_entries me
-                     WHERE me.model_container = ct.model_container) as entries_count
-                    FROM container_types ct
-                    WHERE 1=1";
+            // Parametri paginare
+            $page = max(1, intval($_GET['page'] ?? 1));
+            $perPage = max(10, min(200, intval($_GET['per_page'] ?? 50)));
+            $offset = ($page - 1) * $perPage;
 
+            // Construiește WHERE clause
+            $whereClause = "WHERE 1=1";
             $params = [];
 
             // Filtru după tip container
             if (!empty($tipFilter)) {
-                $sql .= " AND ct.tip_container = ?";
+                $whereClause .= " AND ct.tip_container = ?";
                 $params[] = $tipFilter;
             }
 
             // Filtru după prezența imaginii
             if ($hasImage === 'with') {
-                $sql .= " AND ct.imagine IS NOT NULL AND ct.imagine != ''";
+                $whereClause .= " AND ct.imagine IS NOT NULL AND ct.imagine != ''";
             } elseif ($hasImage === 'without') {
-                $sql .= " AND (ct.imagine IS NULL OR ct.imagine = '')";
+                $whereClause .= " AND (ct.imagine IS NULL OR ct.imagine = '')";
             }
 
             // Căutare în model_container sau descriere
             if (!empty($search)) {
-                $sql .= " AND (ct.model_container LIKE ? OR ct.descriere LIKE ?)";
+                $whereClause .= " AND (ct.model_container LIKE ? OR ct.descriere LIKE ?)";
                 $searchTerm = "%{$search}%";
                 $params[] = $searchTerm;
                 $params[] = $searchTerm;
             }
 
-            $sql .= " ORDER BY ct.tip_container, ct.model_container";
+            // Numără total înregistrări
+            $countSql = "SELECT COUNT(*) as total FROM container_types ct $whereClause";
+            $totalResult = dbFetchOne($countSql, $params);
+            $total = $totalResult['total'] ?? 0;
 
-            $types = dbFetchAll($sql, $params);
+            // Query cu numărare înregistrări din manifest_entries și paginare
+            $sql = "SELECT ct.*,
+                    (SELECT COUNT(*) FROM manifest_entries me
+                     WHERE me.model_container = ct.model_container) as entries_count
+                    FROM container_types ct
+                    $whereClause
+                    ORDER BY ct.tip_container, ct.model_container
+                    LIMIT ? OFFSET ?";
+
+            $types = dbFetchAll($sql, array_merge($params, [$perPage, $offset]));
 
             // Obține lista de tipuri unice pentru dropdown filtru
             $tipuriUnice = dbFetchAll("SELECT DISTINCT tip_container FROM container_types ORDER BY tip_container");
 
             jsonResponse([
                 'data' => $types,
-                'tipuri' => array_column($tipuriUnice, 'tip_container')
+                'tipuri' => array_column($tipuriUnice, 'tip_container'),
+                'pagination' => [
+                    'total' => $total,
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total_pages' => $total > 0 ? ceil($total / $perPage) : 1
+                ]
             ]);
         }
         break;

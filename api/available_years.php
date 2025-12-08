@@ -16,6 +16,7 @@ if (!isset($_SESSION['user_id'])) {
 // Obține anii din database_years cu numărul de containere
 $years = dbFetchAll("
     SELECT
+        dy.id,
         dy.year,
         dy.is_active,
         COUNT(me.id) as count

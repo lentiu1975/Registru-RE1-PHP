@@ -41,13 +41,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Autentificare reușită
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
+            $_SESSION['is_admin'] = $user['is_admin'] ?? 0;
+            // Determină rolul efectiv (pentru compatibilitate cu sistemul nou de 3 roluri)
+            $_SESSION['user_role'] = $user['role'] ?? ($user['is_admin'] ? 'admin' : 'user');
             $_SESSION['last_activity'] = time();
 
             // Actualizează last_login
             $updateSql = "UPDATE users SET last_login = NOW() WHERE id = ?";
             dbQuery($updateSql, [$user['id']]);
 
-            // Redirecționează către pagina principală
+            // Redirecționează în funcție de rol
+            // super_admin și admin merg la panoul de administrare
+            $role = $_SESSION['user_role'];
+            if ($role === 'super_admin' || $role === 'admin' || $user['is_admin']) {
+                header('Location: admin_new.php');
+                exit;
+            }
+            // Utilizatorii normali merg la căutare
             header('Location: index.php');
             exit;
         } else {
@@ -174,11 +184,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </form>
 
-            <div class="text-center mt-4">
-                <a href="/index.php" class="text-muted" style="text-decoration: none; font-size: 14px;">
-                    &larr; Înapoi la pagina principală
-                </a>
-            </div>
         </div>
     </div>
 
