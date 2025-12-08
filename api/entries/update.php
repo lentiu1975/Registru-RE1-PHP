@@ -29,7 +29,7 @@ $updates = [];
 $params = [];
 
 $editableFields = [
-    'container_number', 'container_type', 'packages', 'weight',
+    'container_number', 'container_type', 'model_container', 'packages', 'weight',
     'goods_description', 'operation_type', 'ship_name', 'ship_flag',
     'summary_number', 'linie_maritima', 'observatii', 'permit_number',
     'position_number', 'operation_request', 'data_inregistrare'

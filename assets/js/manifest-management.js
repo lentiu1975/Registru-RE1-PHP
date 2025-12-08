@@ -385,15 +385,15 @@ async function viewManifestDetails(manifestNumber) {
                     <td>${escapeHtml(c.operation_request || '-')}</td>
                     <td>${formatDate(c.data_inregistrare)}</td>
                     <td class="${containerCellClass}"><strong>${escapeHtml(c.container_number || '-')}</strong></td>
-                    <td>${escapeHtml(c.goods_description || '-')}</td>
-                    <td>${c.packages || '-'}</td>
-                    <td>${c.weight || '-'}</td>
+                    <td class="editable" data-field="goods_description" data-entry-id="${c.id}" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${escapeHtml(c.goods_description || '-')}</td>
+                    <td class="editable" data-field="packages" data-type="number" data-entry-id="${c.id}" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${c.packages || '-'}</td>
+                    <td class="editable" data-field="weight" data-type="number" data-entry-id="${c.id}" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${c.weight || '-'}</td>
                     <td>${escapeHtml(c.operation_type || '-')}</td>
                     <td>${escapeHtml(c.ship_name || '-')}</td>
                     <td>${escapeHtml(c.ship_flag || '-')}</td>
                     <td>${escapeHtml(c.summary_number || '-')}</td>
-                    <td>${escapeHtml(c.container_type || '-')}</td>
-                    <td>${escapeHtml(c.model_container || '-')}</td>
+                    <td class="editable" data-field="container_type" data-type="select" data-entry-id="${c.id}" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${escapeHtml(c.container_type || '-')}</td>
+                    <td class="editable" data-field="model_container" data-entry-id="${c.id}" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${escapeHtml(c.model_container || '-')}</td>
                     <td class="editable" data-field="linie_maritima" data-entry-id="${c.id}" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${escapeHtml(c.linie_maritima || '-')}</td>
                     <td class="editable" data-field="observatii" data-entry-id="${c.id}" ondblclick="editCell(this)" style="cursor: pointer;" title="Dublu-click pentru editare">${escapeHtml(c.observatii || '-')}</td>
                 </tr>
@@ -455,21 +455,49 @@ async function deleteManifest(manifestNumber) {
 function editCell(cell) {
     const currentValue = cell.textContent.trim();
     const field = cell.getAttribute('data-field');
+    const fieldType = cell.getAttribute('data-type') || 'text';
     const entryId = cell.closest('tr').getAttribute('data-entry-id');
     const row = cell.closest('tr');
     const containerCell = row.querySelector('td:nth-child(6)'); // Celula cu containerul (coloana 6)
 
     // Nu permite editare multipla
-    if (cell.querySelector('input')) {
+    if (cell.querySelector('input') || cell.querySelector('select')) {
         return;
     }
 
-    // Create input element
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = currentValue === '-' ? '' : currentValue;
-    input.className = 'form-control form-control-sm';
-    input.style.minWidth = '150px';
+    let input;
+
+    if (fieldType === 'select' && field === 'container_type') {
+        // Dropdown pentru tip container
+        input = document.createElement('select');
+        input.className = 'form-select form-select-sm';
+        input.style.minWidth = '80px';
+        input.innerHTML = `
+            <option value="">-</option>
+            <option value="20G1" ${currentValue === '20G1' ? 'selected' : ''}>20G1</option>
+            <option value="22G1" ${currentValue === '22G1' ? 'selected' : ''}>22G1</option>
+            <option value="40G1" ${currentValue === '40G1' ? 'selected' : ''}>40G1</option>
+            <option value="45G1" ${currentValue === '45G1' ? 'selected' : ''}>45G1</option>
+        `;
+    } else if (fieldType === 'number') {
+        // Input numeric pentru colete si greutate
+        input = document.createElement('input');
+        input.type = 'number';
+        input.value = currentValue === '-' ? '' : currentValue;
+        input.className = 'form-control form-control-sm';
+        input.style.minWidth = '80px';
+        input.min = '0';
+        if (field === 'weight') {
+            input.step = '0.01';
+        }
+    } else {
+        // Input text standard
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentValue === '-' ? '' : currentValue;
+        input.className = 'form-control form-control-sm';
+        input.style.minWidth = '150px';
+    }
 
     // Save function
     const saveEdit = async () => {
